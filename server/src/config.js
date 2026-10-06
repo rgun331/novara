@@ -11,6 +11,8 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientOrigin: process.env.CLIENT_ORIGIN || '*',
   serveClient: process.env.SERVE_CLIENT === 'true' || isProd,
+  // Creates demo@novara.app / demo1234 with sample data on startup (off in production unless enabled)
+  seedDemo: process.env.SEED_DEMO ? process.env.SEED_DEMO === 'true' : !isProd,
 };
 
 if (isProd && config.jwtSecret === 'novara-dev-secret-change-me') {

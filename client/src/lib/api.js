@@ -22,6 +22,8 @@ export class ApiError extends Error {
   }
 }
 
+export const OFFLINE_MESSAGE = 'The Novara server is not responding right now. It may be restarting, please try again in a few seconds.';
+
 let onUnauthorized = null;
 export const setUnauthorizedHandler = (fn) => {
   onUnauthorized = fn;
@@ -49,17 +51,23 @@ export async function api(path, { method = 'GET', body, params, signal } = {}) {
     });
   } catch (err) {
     if (err.name === 'AbortError') throw err;
-    throw new ApiError(0, 'Cannot reach the server. Check your connection and try again.');
+    throw new ApiError(0, OFFLINE_MESSAGE);
   }
 
   let data = null;
   const text = await res.text();
-  if (text) {
+  const isJson = (res.headers.get('content-type') || '').includes('application/json');
+  if (text && isJson) {
     try {
       data = JSON.parse(text);
     } catch {
-      data = { message: text };
+      data = null;
     }
+  }
+
+  // Gateway errors or HTML/plain responses mean the API is not reachable (restarting or down)
+  if ([502, 503, 504].includes(res.status) || (!res.ok && !data)) {
+    throw new ApiError(res.status || 0, OFFLINE_MESSAGE);
   }
 
   if (!res.ok) {

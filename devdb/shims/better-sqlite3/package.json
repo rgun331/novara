@@ -1,0 +1,7 @@
+{
+  "name": "better-sqlite3",
+  "version": "12.6.2",
+  "description": "Novara dev shim: a tiny better-sqlite3 compatible wrapper around Node's built-in node:sqlite (no native build needed).",
+  "main": "index.js",
+  "type": "commonjs"
+}

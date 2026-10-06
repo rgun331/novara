@@ -18,11 +18,15 @@ export function errorHandler(err, req, res, next) {
   } else if (err.code === 11000) {
     status = 409;
     message = 'A record with this value already exists.';
+  } else if (/Mongo(Network|ServerSelection|NotConnected|Topology)|MongooseServerSelection/.test(err.name || '') || /ECONNREFUSED|ECONNRESET|connection .* closed/i.test(err.message || '')) {
+    status = 503;
+    message = 'The database is starting up. Please try again in a few seconds.';
   } else if (err.type === 'entity.too.large') {
     status = 413;
     message = 'Upload is too large. Please use an image under 1.5 MB.';
   }
 
-  if (status >= 500) console.error('[novara]', err);
+  if (status === 503) console.error('[novara] Database unavailable:', err.message);
+  else if (status >= 500) console.error('[novara]', err);
   res.status(status).json({ message, ...(details ? { details } : {}) });
 }

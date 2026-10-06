@@ -58,3 +58,20 @@ patch('query/matcher.js', (src) => {
   );
   return src;
 });
+
+// 3. SQLite persistence: store documents as EJSON so Dates (and any BSON
+//    values) survive a round trip through the database file.
+{
+  const p = path.join(root, 'node_modules', '@rckflr', 'easydb', 'src', 'adapters', 'sqlite.js');
+  if (fs.existsSync(p)) {
+    let src = fs.readFileSync(p, 'utf8');
+    if (!src.includes(MARK)) {
+      src = src
+        .replace(/JSON\.stringify\((value|updated|item)\)/g, '__ser($1)')
+        .replace(/JSON\.parse\((row\._value|r\._value)\)/g, '__de($1)');
+      src = `${MARK}\nimport { EJSON } from 'bson';\nconst __ser = (v) => EJSON.stringify(v, { relaxed: true });\nconst __de = (s) => EJSON.parse(s, { relaxed: true });\n${src}`;
+      fs.writeFileSync(p, src);
+      console.log('[devdb] patched easydb sqlite adapter');
+    }
+  }
+}

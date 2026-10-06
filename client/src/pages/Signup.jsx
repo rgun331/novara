@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowRight } from '@phosphor-icons/react';
-import { AuthLayout, FormError } from '../components/AuthLayout';
+import { AuthLayout, FormError, ServerStatusBanner } from '../components/AuthLayout';
+import { useServerStatus } from '../hooks/useServerStatus';
 import { Field, Input } from '../components/ui/Field';
 import { PasswordInput, StrengthMeter } from '../components/ui/PasswordInput';
 import { Button } from '../components/ui/Button';
@@ -15,6 +16,7 @@ export default function Signup() {
   const [errors, setErrors] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const server = useServerStatus();
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
@@ -53,7 +55,10 @@ export default function Signup() {
       <h1 className="font-display text-[2.1rem] font-semibold leading-tight tracking-[-0.035em]">Create your workspace</h1>
       <p className="mt-2 text-[15px] text-ink-500">Free to start. Your dashboard is ready the moment you sign up.</p>
 
-      <form onSubmit={submit} className="mt-8 space-y-5" noValidate>
+      <div className="mt-8">
+        <ServerStatusBanner status={server.status} />
+      </div>
+      <form onSubmit={submit} className="space-y-5" noValidate>
         <FormError message={error} />
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Full name" htmlFor="name" error={errors.name} required>

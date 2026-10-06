@@ -10,6 +10,7 @@ import mongoose from 'mongoose';
 import { config } from './config.js';
 import { connectDB } from './db.js';
 import { errorHandler, notFound } from './middleware/error.js';
+import { seedDemo, DEMO } from './seed.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import productRoutes from './routes/products.js';
@@ -34,7 +35,18 @@ app.use(express.json({ limit: '2mb' }));
 if (!config.isProd) app.use(morgan('dev'));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected', time: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    demo: config.seedDemo ? { email: DEMO.email, password: DEMO.password } : null,
+    time: new Date().toISOString(),
+  });
+});
+
+// While the database is (re)connecting, answer clearly instead of hanging on buffered queries
+app.use('/api', (req, res, next) => {
+  if (mongoose.connection.readyState === 1) return next();
+  res.status(503).json({ message: 'The database is starting up. Please try again in a few seconds.' });
 });
 
 app.use('/api/auth', authRoutes);
@@ -54,12 +66,26 @@ if (config.serveClient && fs.existsSync(clientDist)) {
 
 app.use(errorHandler);
 
-connectDB()
-  .then(() => {
-    app.listen(config.port, config.host, () => {
-      console.log(`[novara] API listening on http://${config.host}:${config.port}`);
-    });
-  })
+async function ensureDemo() {
+  if (!config.seedDemo) return;
+  try {
+    const r = await seedDemo();
+    console.log(`[novara] Demo account ${r.created ? 'created' : 'ready'}: ${DEMO.email} / ${DEMO.password}`);
+  } catch (err) {
+    console.error('[novara] Demo seed failed:', err.message);
+  }
+}
+
+// Listen right away so the UI can show a helpful status while the database connects
+app.listen(config.port, config.host, () => {
+  console.log(`[novara] API listening on http://${config.host}:${config.port}`);
+});
+
+// If the database comes back after a restart (e.g. an in-memory dev DB was wiped), re-seed the demo
+mongoose.connection.on('reconnected', ensureDemo);
+
+connectDB(config.isProd ? 10 : Infinity)
+  .then(ensureDemo)
   .catch((err) => {
     console.error('[novara] Could not connect to MongoDB. Check MONGODB_URI.', err.message);
     process.exit(1);

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ArrowLeft, CircleNotch, WifiSlash } from '@phosphor-icons/react';
 import { Logo } from './brand/Logo';
 
 export function AuthLayout({ children, image, imageAlt, quote, author, role }) {
@@ -65,5 +65,31 @@ export function FormError({ message }) {
     <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-rose-ink/20 bg-rose-soft px-3.5 py-2.5 text-[13px] font-medium text-rose-ink" role="alert">
       {message}
     </motion.div>
+  );
+}
+
+export function ServerStatusBanner({ status }) {
+  const show = status === 'offline' || status === 'db';
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="overflow-hidden"
+          role="status"
+        >
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-ink/20 bg-amber-soft px-3.5 py-3 text-[13px] text-amber-ink">
+            <WifiSlash className="mt-0.5 size-4 shrink-0" weight="bold" />
+            <div className="flex-1">
+              <p className="font-semibold">{status === 'db' ? 'The database is starting up' : 'The server is not responding'}</p>
+              <p className="mt-0.5 opacity-90">This usually takes a few seconds. We will reconnect automatically.</p>
+            </div>
+            <CircleNotch className="mt-0.5 size-4 shrink-0 animate-spin" weight="bold" />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

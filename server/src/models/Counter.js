@@ -6,7 +6,7 @@ const counterSchema = new mongoose.Schema({ _id: String, seq: { type: Number, de
 const Counter = mongoose.model('Counter', counterSchema);
 
 export async function nextSequence(key, start = 1000) {
-  const doc = await Counter.findOneAndUpdate({ _id: key }, { $inc: { seq: 1 } }, { new: true, upsert: true });
+  const doc = await Counter.findOneAndUpdate({ _id: key }, { $inc: { seq: 1 } }, { returnDocument: 'after', upsert: true });
   return start + doc.seq;
 }
 

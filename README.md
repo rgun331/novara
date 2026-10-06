@@ -28,26 +28,48 @@ Novara is a MERN-stack workspace for small product businesses. You can manage pr
 novara/
   client/   React app (Vite). The dev server proxies /api to the API.
   server/   Express API (auth, profile, products, orders, notifications, analytics)
-  devdb/    Optional in-memory MongoDB-compatible server for quick local runs
+  devdb/    Optional MongoDB-compatible dev server, saved to devdb/data (SQLite)
+  scripts/  dev.mjs (runs everything) and smoke.mjs (end-to-end API check)
 ```
 
 ## Getting started
 
-Requirements: Node 20 or newer, plus a MongoDB connection string. If you don't have MongoDB, use the bundled dev database.
+Requirements: Node 22.13 or newer (the dev database uses the built-in `node:sqlite`). A real MongoDB is optional.
 
 ```bash
-npm run install:all                  # installs server, client and devdb
+npm run dev
+```
 
+That one command installs missing dependencies, starts the dev database on `:27017`, the API on `http://localhost:5000` and the app on `http://localhost:5173`. If one of them crashes it is restarted automatically.
+
+### Demo account
+
+In development the API creates a ready-made workspace on startup:
+
+| Email | Password |
+| --- | --- |
+| `demo@novara.app` | `demo1234` |
+
+It comes with 8 products, about 60 days of orders, customers and notifications, so the analytics have real data to show. The login page has an **Open demo** button. New sign-ups always start with an empty workspace. Turn the demo off with `SEED_DEMO=false`. In production it is off unless you set `SEED_DEMO=true`.
+
+### Using a real MongoDB
+
+```bash
 cp server/.env.example server/.env   # set MONGODB_URI and JWT_SECRET
+npm run server   # API
+npm run client   # app
 ```
 
-Run these three in separate terminals:
+`npm run dev` also works: it skips the dev database when `MONGODB_URI` points at a remote host.
+
+### Checking it works
 
 ```bash
-npm run db       # optional: in-memory dev database on :27017 (skip if you use real MongoDB)
-npm run server   # API on http://localhost:5000
-npm run client   # app on http://localhost:5173
+npm run smoke                              # against the API on :5000
+API_URL=http://127.0.0.1:5173 npm run smoke   # through the Vite proxy
 ```
+
+The smoke test covers sign-up, login, a wrong password, product creation with an auto SKU, an order, stock reservation, analytics and notifications.
 
 ### Production (single port)
 
@@ -65,10 +87,17 @@ npm start        # builds the client and serves it from Express with SERVE_CLIEN
 | `JWT_EXPIRES_IN` | `7d` | Token lifetime |
 | `CLIENT_ORIGIN` | `*` | CORS origins, comma-separated |
 | `SERVE_CLIENT` | `false` (`true` in production) | Serve `client/dist` from Express |
+| `SEED_DEMO` | `true` in dev, `false` in production | Create the demo account on startup |
 
 For the client, `VITE_API_PROXY` changes where Vite proxies `/api` (default `http://127.0.0.1:5000`).
 
-> **About `devdb`:** it wraps `@rckflr/easydb-server` with a few compatibility patches and keeps data **in memory**, so data is lost when it restarts. It also does not enforce unique indexes. Novara checks email and SKU uniqueness in code anyway. Use a real MongoDB for anything beyond a demo.
+### Resilience
+
+- The API starts listening right away. Until the database connects (or while it reconnects), API calls return `503` with a clear message instead of hanging.
+- The login and sign-up pages poll `/api/health` and show a "server is not responding" banner that clears on its own.
+- The client turns gateway errors (502/503/504), HTML error pages and network failures into one friendly message, so raw proxy errors never reach the user.
+
+> **About `devdb`:** it wraps `@rckflr/easydb-server` with a few compatibility patches. Data is saved as SQLite files in `devdb/data/` (gitignored) using a tiny `better-sqlite3` shim over Node's built-in `node:sqlite`, so accounts survive restarts. Delete that folder to start fresh, or run `node devdb/scripts/start.mjs --memory` for a throwaway in-memory database. It does not enforce unique indexes, but Novara checks email and SKU uniqueness in code anyway. Use a real MongoDB for anything beyond a demo.
 
 ## Automatic SKUs
 

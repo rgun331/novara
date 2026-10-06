@@ -10,7 +10,7 @@ export async function connectDB(retries = 10) {
       console.log(`[novara] MongoDB connected: ${mongoose.connection.host}/${mongoose.connection.name}`);
       return;
     } catch (err) {
-      console.error(`[novara] MongoDB connection failed (attempt ${attempt}/${retries}): ${err.message}`);
+      console.error(`[novara] MongoDB connection failed (attempt ${attempt}${Number.isFinite(retries) ? `/${retries}` : ''}): ${err.message}`);
       if (attempt === retries) throw err;
       await new Promise((r) => setTimeout(r, 2000));
     }
