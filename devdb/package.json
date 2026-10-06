@@ -1,0 +1,14 @@
+{
+  "name": "novara-devdb",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Optional MongoDB wire-compatible in-memory database for local previews when a real MongoDB server is not available.",
+  "type": "module",
+  "scripts": {
+    "postinstall": "node scripts/patch.mjs",
+    "start": "node scripts/start.mjs"
+  },
+  "dependencies": {
+    "@rckflr/easydb-server": "0.4.0"
+  }
+}

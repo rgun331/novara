@@ -1,1 +1,102 @@
-# novara
+# Novara
+
+Novara is a MERN-stack workspace for small product businesses. You can manage products, orders, customers and analytics in one place.
+
+- **Landing page** with a split hero, a feature bento with a live SKU demo, a pinned GSAP workflow, testimonials, an FAQ and a 3D parcel scene (react-three-fiber).
+- **Accounts**: sign up and log in. Users are stored in MongoDB, passwords are hashed with bcrypt and sessions use JWTs.
+- **Dashboard**:
+  - **Overview**: greeting, setup checklist, KPIs, revenue chart, restock list, recent orders and activity.
+  - **Products**: table with search, filters, sort, bulk delete, CSV export, copy SKU and stock adjustment. Products are added or edited in a modal with image upload and an **automatic SKU generator**.
+  - **Orders**: status tabs, search and CSV export. Orders are created in a modal with line items, live totals and stock reservation. A detail drawer shows the status flow, payment status and a timeline.
+  - **Customers**: built automatically from orders, with segments (top, returning, new) and lifetime value.
+  - **Analytics**: 7, 30 or 90 day and 12 month ranges. Shows KPIs with deltas, revenue and orders, status mix, top products, categories, channels, weekdays and inventory health.
+  - **Notifications**: a bell with an unread badge, plus a full feed you can filter, mark read or unread, delete and clear. You get notifications for orders, low or out-of-stock products, product changes and account events.
+  - **Settings**: profile and profile photo upload (cropped and compressed in the browser). Preferences cover currency, tax, SKU prefix, low stock level and notification toggles. Also: change password and delete account.
+  - **Command palette** (Ctrl/Cmd + K) for live product and order search, quick actions and navigation.
+
+## Stack
+
+| Layer | Tech |
+| --- | --- |
+| Client | React 19, React Router 7, Vite, Tailwind CSS 4, GSAP + ScrollTrigger, Motion, Recharts, three.js / r3f, Phosphor Icons, Sonner |
+| Server | Node.js, Express 5, Mongoose, JWT, bcrypt, Helmet |
+| Database | MongoDB (local, Atlas or the bundled dev database) |
+
+## Project layout
+
+```
+novara/
+  client/   React app (Vite). The dev server proxies /api to the API.
+  server/   Express API (auth, profile, products, orders, notifications, analytics)
+  devdb/    Optional in-memory MongoDB-compatible server for quick local runs
+```
+
+## Getting started
+
+Requirements: Node 20 or newer, plus a MongoDB connection string. If you don't have MongoDB, use the bundled dev database.
+
+```bash
+npm run install:all                  # installs server, client and devdb
+
+cp server/.env.example server/.env   # set MONGODB_URI and JWT_SECRET
+```
+
+Run these three in separate terminals:
+
+```bash
+npm run db       # optional: in-memory dev database on :27017 (skip if you use real MongoDB)
+npm run server   # API on http://localhost:5000
+npm run client   # app on http://localhost:5173
+```
+
+### Production (single port)
+
+```bash
+npm start        # builds the client and serves it from Express with SERVE_CLIENT=true
+```
+
+### Environment (`server/.env`)
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `PORT` | `5000` | API port |
+| `MONGODB_URI` | `mongodb://127.0.0.1:27017/novara` | Local MongoDB or Atlas |
+| `JWT_SECRET` | dev value | **Set a long random string in production** |
+| `JWT_EXPIRES_IN` | `7d` | Token lifetime |
+| `CLIENT_ORIGIN` | `*` | CORS origins, comma-separated |
+| `SERVE_CLIENT` | `false` (`true` in production) | Serve `client/dist` from Express |
+
+For the client, `VITE_API_PROXY` changes where Vite proxies `/api` (default `http://127.0.0.1:5000`).
+
+> **About `devdb`:** it wraps `@rckflr/easydb-server` with a few compatibility patches and keeps data **in memory**, so data is lost when it restarts. It also does not enforce unique indexes. Novara checks email and SKU uniqueness in code anyway. Use a real MongoDB for anything beyond a demo.
+
+## Automatic SKUs
+
+Format: `{PREFIX}-{CATEGORY}-{PRODUCT}[-{VARIANT}]-{SEQUENCE}`
+
+| Product | Category | SKU |
+| --- | --- | --- |
+| Stoneware Mug 350ml | Home & Living | `KC-HOL-STM-350-0001` |
+| Linen Table Runner | Accessories | `KC-ACC-LTR-0002` |
+
+- **Prefix**: your workspace SKU prefix, set in Settings.
+- **Category and product codes**: 3 letters each. One word gives its first 3 letters, two words give 2 + 1, and three or more give initials.
+- **Variant**: sizes such as `350ml` become a variant code.
+- **Sequence**: a per-workspace counter.
+
+SKUs are generated on the server, which guarantees they are unique per workspace. You can also lock and edit a SKU by hand.
+
+## API overview
+
+All routes are under `/api`. Every route except auth requires `Authorization: Bearer <token>`.
+
+| Area | Endpoints |
+| --- | --- |
+| Auth | `POST /auth/signup`, `POST /auth/login`, `GET /auth/me` |
+| Profile | `PATCH /profile`, `PUT /profile/avatar`, `PATCH /profile/preferences`, `PUT /profile/password`, `DELETE /profile` |
+| Products | `GET/POST /products`, `GET /products/meta`, `GET /products/sku`, `GET/PATCH/DELETE /products/:id`, `POST /products/:id/adjust-stock`, `POST /products/bulk-delete` |
+| Orders | `GET/POST /orders`, `GET/PATCH/DELETE /orders/:id` |
+| Notifications | `GET /notifications`, `PATCH /notifications/read-all`, `PATCH /notifications/:id`, `DELETE /notifications/clear`, `DELETE /notifications/:id` |
+| Analytics | `GET /analytics?range=30`, `GET /analytics/customers` |
+
+Errors are returned as `{ message, details: { field: message } }`, and forms show these inline.

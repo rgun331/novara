@@ -1,0 +1,14 @@
+{
+  "name": "novara",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Novara: inventory, orders and analytics for small product businesses (MERN).",
+  "scripts": {
+    "install:all": "npm install --prefix server && npm install --prefix client && npm install --prefix devdb",
+    "db": "npm start --prefix devdb",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "npm run build && SERVE_CLIENT=true NODE_ENV=production npm start --prefix server"
+  }
+}
