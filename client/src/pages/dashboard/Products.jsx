@@ -21,7 +21,7 @@ import { useApi, useDebounced } from '../../hooks/useApi';
 import { useDashboard } from '../../context/DashboardContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationsContext';
-import { api } from '../../lib/api';
+import { api, assetUrl } from '../../lib/api';
 import { formatDate, formatMoney, formatNumber } from '../../lib/format';
 import { downloadCsv } from '../../lib/csv';
 import { Button } from '../../components/ui/Button';
@@ -53,7 +53,7 @@ function StockCell({ p }) {
 }
 
 function ProductThumb({ p }) {
-  if (p.image) return <img src={p.image} alt="" className="size-10 shrink-0 rounded-xl object-cover ring-1 ring-line" />;
+  if (p.imageUrl) return <img src={assetUrl(p.imageUrl)} alt="" width={40} height={40} loading="lazy" decoding="async" className="size-10 shrink-0 rounded-xl object-cover ring-1 ring-line" />;
   return (
     <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-pine-50 font-display text-sm font-semibold text-pine-700 ring-1 ring-pine-100">
       {p.name.slice(0, 2).toUpperCase()}

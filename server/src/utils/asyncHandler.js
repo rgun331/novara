@@ -24,3 +24,17 @@ export const str = (v) => (typeof v === 'string' ? v : '');
 export const qstr = (v) => (Array.isArray(v) ? str(v[0]) : str(v)).slice(0, 200);
 
 export const isDataImage = (s) => typeof s === 'string' && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(s);
+
+const IMAGE_TYPES = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+
+/** Sends a stored data-URL image as binary. Responses are private (per user) and cached for a year, since URLs are versioned. */
+export function sendDataImage(res, dataUrl) {
+  const m = /^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/s.exec(dataUrl || '');
+  if (!m) throw new HttpError(404, 'Image not found');
+  res.set({
+    'Content-Type': IMAGE_TYPES[m[1]],
+    'Cache-Control': 'private, max-age=31536000, immutable',
+    'Content-Disposition': 'inline',
+  });
+  res.send(Buffer.from(m[2], 'base64'));
+}

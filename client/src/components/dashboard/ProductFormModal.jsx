@@ -5,7 +5,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Field, Input, Select, Textarea } from '../ui/Field';
 import { Segmented } from '../ui/Segmented';
-import { api } from '../../lib/api';
+import { api, assetUrl } from '../../lib/api';
 import { resizeImage } from '../../lib/image';
 import { formatMoney } from '../../lib/format';
 import { useDashboard } from '../../context/DashboardContext';
@@ -40,6 +40,8 @@ export function ProductFormModal() {
         stock: String(editing.stock ?? ''),
         lowStockThreshold: String(editing.lowStockThreshold ?? ''),
         tags: (editing.tags || []).join(', '),
+        // Existing photo is shown from its URL; only a new upload (data URL) or removal is sent back
+        image: editing.imageUrl || '',
       });
       setSkuAuto(false);
     } else {
@@ -134,6 +136,8 @@ export function ProductFormModal() {
     delete payload.updatedAt;
     delete payload.stockStatus;
     delete payload.__v;
+    delete payload.imageUrl;
+    if (editing && form.image === (editing.imageUrl || '')) delete payload.image;
     try {
       if (editing) {
         await api(`/products/${editing._id}`, { method: 'PATCH', body: payload });
@@ -182,7 +186,7 @@ export function ProductFormModal() {
             className="group relative grid aspect-square w-full max-w-[180px] place-items-center overflow-hidden rounded-2xl border border-dashed border-line-strong bg-canvas text-ink-500 transition hover:border-pine-400 hover:bg-pine-50/50"
           >
             {form.image ? (
-              <img src={form.image} alt="Product preview" className="absolute inset-0 size-full object-cover" />
+              <img src={assetUrl(form.image)} alt="Product preview" className="absolute inset-0 size-full object-cover" />
             ) : (
               <span className="flex flex-col items-center gap-2 px-3 text-center text-xs">
                 <ImageSquare className="size-7 text-ink-500 transition group-hover:text-pine-600" weight="duotone" />

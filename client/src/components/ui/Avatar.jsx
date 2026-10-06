@@ -1,5 +1,6 @@
 import { cn } from '../../lib/cn';
 import { initials } from '../../lib/format';
+import { assetUrl } from '../../lib/api';
 
 const PALETTE = [
   ['#DCE8E1', '#1F3D32'],
@@ -18,7 +19,7 @@ export function Avatar({ src, name = '', size = 36, className, ring = false }) {
       style={{ width: size, height: size, background: src ? undefined : bg, color: fg, fontSize: Math.max(10, size * 0.38) }}
       aria-label={name}
     >
-      {src ? <img src={src} alt={name} className="size-full object-cover" /> : <span className="leading-none tracking-tight">{initials(name)}</span>}
+      {src ? <img src={assetUrl(src)} alt={name} width={size} height={size} decoding="async" className="size-full object-cover" /> : <span className="leading-none tracking-tight">{initials(name)}</span>}
     </span>
   );
 }

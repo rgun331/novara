@@ -83,11 +83,11 @@ export function Sidebar({ collapsed, onToggle, onNavigate, mobile = false }) {
             <button onClick={onToggle} className="grid size-10 place-items-center rounded-xl text-ink-400 hover:bg-white/8 hover:text-paper" aria-label="Expand sidebar">
               <CaretDoubleLeft className="size-4 rotate-180" weight="bold" />
             </button>
-            <Avatar src={user?.avatar} name={user?.name} size={36} />
+            <Avatar src={user?.avatarUrl} name={user?.name} size={36} />
           </>
         ) : (
           <div className="flex items-center gap-3 rounded-xl p-2">
-            <Avatar src={user?.avatar} name={user?.name} size={36} />
+            <Avatar src={user?.avatarUrl} name={user?.name} size={36} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-semibold text-paper">{user?.name}</p>
               <p className="truncate text-xs text-ink-400">{user?.email}</p>

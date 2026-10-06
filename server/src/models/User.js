@@ -33,10 +33,12 @@ const userSchema = new mongoose.Schema(
     location: { type: String, trim: true, maxlength: 80, default: '' },
     website: { type: String, trim: true, maxlength: 120, default: '' },
     bio: { type: String, trim: true, maxlength: 280, default: '' },
-    avatar: { type: String, default: '' },
+    // Stored as a data URL but never loaded by default; clients fetch it from avatarUrl
+    avatar: { type: String, default: '', select: false },
+    avatarUpdatedAt: { type: Date, default: null },
     preferences: { type: preferencesSchema, default: () => ({}) },
     lastLoginAt: { type: Date },
-    // Bumped on every password change; tokens carrying an older version are rejected
+    // Bumped on password change and "sign out everywhere"; sessions carrying an older version are rejected
     tokenVersion: { type: Number, default: 0, select: false },
   },
   { timestamps: true }
@@ -56,7 +58,10 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
   const obj = this.toObject({ versionKey: false });
   delete obj.password;
   delete obj.tokenVersion;
+  delete obj.avatar;
+  delete obj.avatarUpdatedAt;
   obj.id = String(obj._id);
+  obj.avatarUrl = this.avatarUpdatedAt ? `/api/profile/avatar?v=${new Date(this.avatarUpdatedAt).getTime()}` : '';
   return obj;
 };
 

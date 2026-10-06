@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 import { config } from './config.js';
 import { errorHandler, notFound } from './middleware/error.js';
+import { requireCsrfHeader } from './utils/session.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import productRoutes from './routes/products.js';
@@ -45,7 +46,7 @@ app.use(
 
 // Same-origin by default. CORS is only enabled for the origins listed in CLIENT_ORIGIN.
 if (config.clientOrigins.length) {
-  app.use('/api', cors({ origin: config.clientOrigins.includes('*') ? '*' : config.clientOrigins, maxAge: 600 }));
+  app.use('/api', cors({ origin: config.clientOrigins, credentials: true, maxAge: 600 }));
 }
 
 app.use(compression());
@@ -69,6 +70,9 @@ app.use(
     message: { message: 'Too many requests. Please slow down and try again shortly.' },
   })
 );
+
+// CSRF protection for the cookie session (see utils/session.js)
+app.use('/api', requireCsrfHeader);
 
 // Fail fast with a clear message while the database is unreachable
 app.use('/api', (req, res, next) => {

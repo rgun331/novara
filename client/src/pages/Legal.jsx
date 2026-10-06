@@ -28,7 +28,7 @@ const DOCS = {
       {
         heading: 'Sessions',
         body: [
-          'When you log in, a signed session token is kept in your browser. Choosing "Keep me logged in" keeps it after the browser closes. Otherwise it is cleared when the tab closes.',
+          'When you log in, Novara sets one essential cookie holding a signed session token. It is http-only, so page scripts cannot read it, and it is only sent to Novara. Choosing "Keep me logged in" keeps it for 7 days. Otherwise it is removed when you close the browser. We use no tracking or advertising cookies.',
           'Changing your password signs out every other device straight away.',
         ],
       },

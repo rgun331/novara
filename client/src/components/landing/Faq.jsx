@@ -7,7 +7,7 @@ import { Reveal } from './Reveal';
 const FAQS = [
   {
     q: 'Where is my data stored?',
-    a: 'Every account, product, order and notification is stored in MongoDB. Passwords are hashed with bcrypt and sessions use signed tokens.',
+    a: 'Every account, product, order and notification is stored in MongoDB. Passwords are hashed with bcrypt and sessions use secure, http-only cookies.',
   },
   {
     q: 'How does the automatic SKU work?',

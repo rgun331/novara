@@ -27,9 +27,22 @@ const productSchema = new mongoose.Schema(
     status: { type: String, enum: ['active', 'draft', 'archived'], default: 'active' },
     supplier: { type: String, trim: true, maxlength: 80, default: '' },
     tags: [{ type: String, trim: true, maxlength: 24 }],
-    image: { type: String, default: '' },
+    // Stored as a data URL but never loaded by default; clients fetch it from imageUrl
+    image: { type: String, default: '', select: false },
+    imageUpdatedAt: { type: Date, default: null },
   },
-  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: (doc, ret) => {
+        delete ret.image;
+        delete ret.imageUpdatedAt;
+        return ret;
+      },
+    },
+    toObject: { virtuals: true },
+  }
 );
 
 productSchema.index({ owner: 1, sku: 1 }, { unique: true });
@@ -39,6 +52,11 @@ productSchema.virtual('stockStatus').get(function stockStatus() {
   if (this.stock <= 0) return 'out';
   if (this.stock <= this.lowStockThreshold) return 'low';
   return 'in';
+});
+
+// Versioned so browsers can cache the image forever and still pick up changes
+productSchema.virtual('imageUrl').get(function imageUrl() {
+  return this.imageUpdatedAt ? `/api/products/${this._id}/image?v=${new Date(this.imageUpdatedAt).getTime()}` : '';
 });
 
 export default mongoose.model('Product', productSchema);

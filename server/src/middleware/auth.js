@@ -1,28 +1,39 @@
-import jwt from 'jsonwebtoken';
-import { config } from '../config.js';
 import User from '../models/User.js';
 import { asyncHandler, HttpError } from '../utils/asyncHandler.js';
+import { readSessionToken, verifyToken } from '../utils/session.js';
 
-export const signToken = (user) =>
-  jwt.sign({ sub: String(user._id), v: user.tokenVersion || 0 }, config.jwtSecret, { expiresIn: config.jwtExpiresIn, algorithm: 'HS256' });
-
-export const protect = asyncHandler(async (req, res, next) => {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) throw new HttpError(401, 'Please log in to continue.');
+/** Resolves the user for the current session cookie, or null when there is no valid session. */
+async function sessionUser(req) {
+  const token = readSessionToken(req);
+  if (!token) return { user: null, reason: 'Please log in to continue.' };
 
   let payload;
   try {
-    payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] });
+    payload = verifyToken(token);
   } catch {
-    throw new HttpError(401, 'Your session has expired. Please log in again.');
+    return { user: null, reason: 'Your session has expired. Please log in again.' };
   }
 
   const user = await User.findById(payload.sub).select('+tokenVersion');
-  if (!user) throw new HttpError(401, 'Account not found. Please log in again.');
-  if ((payload.v || 0) !== (user.tokenVersion || 0)) {
-    throw new HttpError(401, 'Your password was changed. Please log in again.');
-  }
+  if (!user) return { user: null, reason: 'Account not found. Please log in again.' };
+  // tokenVersion changes on password change or "sign out everywhere", revoking older sessions
+  if ((payload.v || 0) !== (user.tokenVersion || 0)) return { user: null, reason: 'You were signed out. Please log in again.' };
+
+  return { user, remember: payload.r !== 0 };
+}
+
+export const protect = asyncHandler(async (req, res, next) => {
+  const { user, reason, remember } = await sessionUser(req);
+  if (!user) throw new HttpError(401, reason);
   req.user = user;
+  req.sessionRemember = remember;
+  next();
+});
+
+/** Like protect, but lets anonymous requests through with req.user = null. */
+export const optionalAuth = asyncHandler(async (req, res, next) => {
+  const { user, remember } = await sessionUser(req);
+  req.user = user;
+  req.sessionRemember = remember;
   next();
 });

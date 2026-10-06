@@ -1,37 +1,47 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, setUnauthorizedHandler, tokenStore } from '../lib/api';
+import { api, setUnauthorizedHandler } from '../lib/api';
 
 const AuthContext = createContext(null);
 
+// The session itself is an httpOnly cookie the browser sends automatically,
+// so this context only tracks who is signed in.
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [status, setStatus] = useState(tokenStore.get() ? 'loading' : 'guest');
+  const [status, setStatus] = useState('loading');
 
-  const logout = useCallback(() => {
-    tokenStore.clear();
+  // Local sign-out, used when the server reports the session is gone
+  const clearSession = useCallback(() => {
     setUser(null);
     setStatus('guest');
   }, []);
 
+  const logout = useCallback(async () => {
+    clearSession();
+    await api('/auth/logout', { method: 'POST' }).catch(() => {});
+  }, [clearSession]);
+
+  const logoutEverywhere = useCallback(async () => {
+    await api('/auth/logout-all', { method: 'POST' });
+    clearSession();
+  }, [clearSession]);
+
   useEffect(() => {
-    setUnauthorizedHandler(logout);
-    if (!tokenStore.get()) return;
+    setUnauthorizedHandler(clearSession);
     let active = true;
-    api('/auth/me')
+    api('/auth/session')
       .then((d) => {
         if (!active) return;
         setUser(d.user);
-        setStatus('authenticated');
+        setStatus(d.user ? 'authenticated' : 'guest');
       })
-      .catch(() => active && logout());
+      .catch(() => active && setStatus('guest'));
     return () => {
       active = false;
     };
-  }, [logout]);
+  }, [clearSession]);
 
   const login = useCallback(async ({ email, password, remember = true }) => {
-    const d = await api('/auth/login', { method: 'POST', body: { email, password } });
-    tokenStore.set(d.token, remember);
+    const d = await api('/auth/login', { method: 'POST', body: { email, password, remember } });
     setUser(d.user);
     setStatus('authenticated');
     return d.user;
@@ -39,7 +49,6 @@ export function AuthProvider({ children }) {
 
   const signup = useCallback(async (payload) => {
     const d = await api('/auth/signup', { method: 'POST', body: payload });
-    tokenStore.set(d.token, true);
     setUser(d.user);
     setStatus('authenticated');
     return d.user;
@@ -54,9 +63,11 @@ export function AuthProvider({ children }) {
       login,
       signup,
       logout,
+      logoutEverywhere,
+      clearSession,
       setUser,
     }),
-    [user, status, login, signup, logout]
+    [user, status, login, signup, logout, logoutEverywhere, clearSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

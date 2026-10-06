@@ -3,8 +3,9 @@ import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import Notification from '../models/Notification.js';
-import { protect, signToken } from '../middleware/auth.js';
-import { asyncHandler, HttpError, isDataImage, str, toNumber } from '../utils/asyncHandler.js';
+import { protect } from '../middleware/auth.js';
+import { endSession, startSession } from '../utils/session.js';
+import { asyncHandler, HttpError, isDataImage, sendDataImage, str, toNumber } from '../utils/asyncHandler.js';
 import { EMAIL_RE, passwordError } from '../utils/validation.js';
 import { notify } from '../utils/notify.js';
 
@@ -55,6 +56,14 @@ router.patch(
   })
 );
 
+router.get(
+  '/avatar',
+  asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).select('+avatar');
+    sendDataImage(res, user?.avatar);
+  })
+);
+
 router.put(
   '/avatar',
   asyncHandler(async (req, res) => {
@@ -62,6 +71,7 @@ router.put(
     if (avatar && !isDataImage(avatar)) throw new HttpError(400, 'Upload a PNG, JPG or WebP image.');
     if (avatar.length > 1_500_000) throw new HttpError(413, 'Image is too large. Please use one under 1 MB.');
     req.user.avatar = avatar;
+    req.user.avatarUpdatedAt = avatar ? new Date() : null;
     await req.user.save();
     await notify(req.user, {
       type: 'account',
@@ -106,8 +116,9 @@ router.put(
     user.password = newPassword; // the model bumps tokenVersion, revoking every existing session
     await user.save();
     await notify(user, { type: 'account', title: 'Password changed', message: 'Other devices were signed out. If this was not you, reset your password immediately.', link: '/dashboard/settings' });
-    // Keep this device signed in with a fresh token
-    res.json({ message: 'Password updated', token: signToken(user) });
+    // Keep this device signed in with a fresh session
+    startSession(res, user, { remember: req.sessionRemember });
+    res.json({ message: 'Password updated' });
   })
 );
 
@@ -121,6 +132,7 @@ router.delete(
       Notification.deleteMany({ owner: user._id }),
     ]);
     await User.deleteOne({ _id: user._id });
+    endSession(res);
     res.json({ message: 'Account deleted' });
   })
 );

@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
-import { Camera, Globe, LockKey, MapPin, Phone, SlidersHorizontal, Trash, UploadSimple, UserCircle, Warning } from '@phosphor-icons/react';
+import { Camera, Globe, LockKey, MapPin, Phone, SignOut, SlidersHorizontal, Trash, UploadSimple, UserCircle, Warning } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationsContext';
-import { api, tokenStore } from '../../lib/api';
+import { api } from '../../lib/api';
 import { resizeImage } from '../../lib/image';
 import { formatDate, formatMoney } from '../../lib/format';
 import { skuParts } from '../../lib/sku';
@@ -180,7 +180,7 @@ function ProfileTab() {
           className={cn('flex flex-col items-start gap-5 rounded-2xl border border-dashed p-5 transition-colors sm:flex-row sm:items-center', dragging ? 'border-pine-500 bg-pine-50' : 'border-line-strong')}
         >
           <div className="relative">
-            <Avatar src={user.avatar} name={user.name} size={88} />
+            <Avatar src={user.avatarUrl} name={user.name} size={88} />
             <button
               onClick={() => fileRef.current?.click()}
               className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-ink-900 text-paper ring-4 ring-paper transition hover:bg-pine-700"
@@ -197,7 +197,7 @@ function ProfileTab() {
               <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()} loading={uploading}>
                 <UploadSimple className="size-4" /> Upload photo
               </Button>
-              {user.avatar && (
+              {user.avatarUrl && (
                 <Button size="sm" variant="danger-ghost" onClick={removeAvatar} disabled={uploading}>
                   Remove
                 </Button>
@@ -383,7 +383,7 @@ function PreferencesTab() {
 /* ---------------- Security ---------------- */
 
 function SecurityTab() {
-  const { logout } = useAuth();
+  const { clearSession, logoutEverywhere } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [errors, setErrors] = useState({});
@@ -416,9 +416,8 @@ function SecurityTab() {
     if (Object.keys(er).length) return setErrors(er);
     setSaving(true);
     try {
-      const d = await api('/profile/password', { method: 'PUT', body: { currentPassword: form.currentPassword, newPassword: form.newPassword } });
-      // Other sessions are signed out by the server; keep this one signed in with the fresh token
-      if (d.token) tokenStore.replace(d.token);
+      // The server signs out every other session and renews this one
+      await api('/profile/password', { method: 'PUT', body: { currentPassword: form.currentPassword, newPassword: form.newPassword } });
       setForm({ currentPassword: '', newPassword: '', confirm: '' });
       toast.success('Password updated');
     } catch (err) {
@@ -429,13 +428,26 @@ function SecurityTab() {
     }
   };
 
+  const [signingOut, setSigningOut] = useState(false);
+  const signOutEverywhere = async () => {
+    setSigningOut(true);
+    try {
+      await logoutEverywhere();
+      toast.success('Signed out on all devices');
+      navigate('/login', { replace: true });
+    } catch (err) {
+      toast.error(err.message);
+      setSigningOut(false);
+    }
+  };
+
   const deleteAccount = async () => {
     setDeleting(true);
     setDelError('');
     try {
       await api('/profile', { method: 'DELETE', body: { password: delPassword } });
       toast.success('Your account was deleted');
-      logout();
+      clearSession();
       navigate('/', { replace: true });
     } catch (err) {
       setDelError(err.details?.password || err.message);
@@ -470,6 +482,20 @@ function SecurityTab() {
           </div>
         </Section>
       </form>
+
+      <Section
+        title="Sessions"
+        description="Signed in on a shared or lost device? Sign out everywhere, including this browser."
+        footer={
+          <Button variant="secondary" loading={signingOut} onClick={signOutEverywhere}>
+            <SignOut className="size-4" /> Sign out everywhere
+          </Button>
+        }
+      >
+        <p className="max-w-[60ch] text-[13px] text-ink-500">
+          Your session is kept in a secure, http-only cookie that page scripts cannot read. Changing your password also signs out your other devices.
+        </p>
+      </Section>
 
       <section className="rounded-2xl border border-rose-ink/25 bg-paper p-5 shadow-soft md:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

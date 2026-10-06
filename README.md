@@ -100,22 +100,27 @@ This works as-is on Render, Railway, Fly.io, Heroku or a VPS behind Nginx. The p
 | `PORT` | | `5000` | |
 | `JWT_EXPIRES_IN` | | `7d` | Login lifetime |
 | `TRUST_PROXY` | | `1` in production, else `false` | Number of proxies in front of the app, used to read the real client IP for rate limits. Set `false` if Node is exposed directly |
-| `CLIENT_ORIGIN` | | empty | Only if the client is hosted on another domain: comma-separated origins allowed by CORS |
+| `CLIENT_ORIGIN` | | empty | Only if the client is hosted on another domain: comma-separated exact origins allowed by CORS (with credentials) |
+| `COOKIE_SECURE` | | `true` in production | Set `false` only to try a production build over plain http |
+| `COOKIE_SAMESITE` | | `strict` | Use `none` only if the client and API are on unrelated domains (see below) |
 | `SERVE_CLIENT` | | auto | Serve `client/dist` from Express. Automatically on when the client has been built |
 
-**Hosting the client separately** (for example on Vercel or Netlify): build it with `VITE_API_URL=https://api.yourdomain.com npm run build --prefix client`, then set `CLIENT_ORIGIN=https://app.yourdomain.com` and `SERVE_CLIENT=false` on the API. In development, `VITE_API_PROXY` changes where Vite proxies `/api`.
+**Hosting the client separately** (for example on Vercel or Netlify): build it with `VITE_API_URL=https://api.yourdomain.com npm run build --prefix client`, then set `CLIENT_ORIGIN=https://app.yourdomain.com` and `SERVE_CLIENT=false` on the API. Keep both on subdomains of the same domain (`app.` and `api.`) so the strict session cookie still works. Completely different domains need `COOKIE_SAMESITE=none`, and some browsers (Safari) block those cookies, so the single deployment is recommended. In development, `VITE_API_PROXY` changes where Vite proxies `/api`.
 
 ## Security
 
 - **Secrets come only from the environment.** There are no default credentials or fallback JWT secret, and `server/.env` is gitignored.
 - **Passwords** are hashed with bcrypt (cost 11) and capped at 128 characters. Login takes the same time whether or not the email exists, so accounts cannot be discovered by timing.
 - **Rate limits**: 20 sign-ups per IP per hour, 60 login attempts per IP and 10 failed attempts per account per 15 minutes, plus a general API limit per IP.
-- **Sessions** are HS256 JWTs pinned to that algorithm. Changing your password revokes every other session (token versioning). Changing your email or password, or deleting the account, requires the current password.
+- **Sessions** live in an `httpOnly`, `Secure`, `SameSite=Strict` cookie (`__Host-` prefixed in production), so page scripts can never read the token. The token is an HS256 JWT pinned to that algorithm. "Keep me logged in" off gives a cookie that ends when the browser closes.
+- **CSRF**: besides SameSite, every state-changing request must carry an `X-Requested-With` header, which cross-site pages cannot add without passing CORS.
+- **Revocation**: changing your password signs out every other device, and Settings > Security has **Sign out everywhere**. Changing your email or password, or deleting the account, requires the current password.
 - **Tenant isolation**: every query is scoped to the logged-in owner, so one workspace can never read or change another's data.
 - **Input handling**: request values are type-checked and bounded (lengths, prices, quantities, list sizes). Objects sent in place of strings get a 400 instead of becoming query operators, and search text is regex-escaped.
 - **Headers**: Helmet with a strict Content Security Policy (everything is self-hosted), HSTS, frame protection and no `X-Powered-By`. CORS is off unless `CLIENT_ORIGIN` is set.
 - **Errors**: unexpected server errors are logged but return a generic message in production, so stack traces and database details never reach the browser.
 - **CSV exports** neutralise spreadsheet formulas in user-entered text (CSV injection).
+- **Images** (product photos, avatars) are served from authenticated, owner-scoped URLs with the right content type. Only PNG, JPG, WebP and GIF are accepted (no SVG).
 - **Data hygiene**: notifications are removed automatically after 90 days (TTL index). Deleting an account removes all of its products, orders and notifications.
 
 ## Reliability
@@ -143,13 +148,13 @@ SKUs are generated on the server, which guarantees they are unique per workspace
 
 ## API overview
 
-All routes are under `/api`. Every route except auth requires `Authorization: Bearer <token>`.
+All routes are under `/api`. Authentication uses the session cookie set by sign-up or login. State-changing requests must send `X-Requested-With: XMLHttpRequest`.
 
 | Area | Endpoints |
 | --- | --- |
-| Auth | `POST /auth/signup`, `POST /auth/login`, `GET /auth/me` |
-| Profile | `PATCH /profile`, `PUT /profile/avatar`, `PATCH /profile/preferences`, `PUT /profile/password`, `DELETE /profile` |
-| Products | `GET/POST /products`, `GET /products/meta`, `GET /products/sku`, `GET/PATCH/DELETE /products/:id`, `POST /products/:id/adjust-stock`, `POST /products/bulk-delete` |
+| Auth | `POST /auth/signup`, `POST /auth/login`, `GET /auth/session`, `GET /auth/me`, `POST /auth/logout`, `POST /auth/logout-all` |
+| Profile | `PATCH /profile`, `GET/PUT /profile/avatar`, `PATCH /profile/preferences`, `PUT /profile/password`, `DELETE /profile` |
+| Products | `GET/POST /products`, `GET /products/meta`, `GET /products/sku`, `GET/PATCH/DELETE /products/:id`, `GET /products/:id/image`, `POST /products/:id/adjust-stock`, `POST /products/bulk-delete` |
 | Orders | `GET/POST /orders`, `GET/PATCH/DELETE /orders/:id` |
 | Notifications | `GET /notifications`, `PATCH /notifications/read-all`, `PATCH /notifications/:id`, `DELETE /notifications/clear`, `DELETE /notifications/:id` |
 | Analytics | `GET /analytics?range=30`, `GET /analytics/customers` |

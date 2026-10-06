@@ -1,6 +1,7 @@
 import { config } from './config.js';
 import { connectDB, disconnectDB } from './db.js';
 import { app } from './app.js';
+import { runMigrations } from './migrations.js';
 
 process.on('unhandledRejection', (err) => {
   console.error('[novara] Unhandled promise rejection:', err);
@@ -12,6 +13,12 @@ async function start() {
   } catch (err) {
     console.error('[novara] Could not connect to MongoDB. Check MONGO_URI and your Atlas network access list.', err.message);
     process.exit(1);
+  }
+
+  try {
+    await runMigrations();
+  } catch (err) {
+    console.error('[novara] Startup migration failed (continuing):', err.message);
   }
 
   const server = app.listen(config.port, config.host, () => {

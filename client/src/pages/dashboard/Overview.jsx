@@ -35,7 +35,7 @@ function Onboarding({ user, analytics, onAddProduct, onAddOrder }) {
   const steps = [
     { done: analytics.inventory.products > 0, label: 'Add your first product', action: onAddProduct },
     { done: analytics.kpis.orders > 0 || Object.keys(analytics.statusBreakdown || {}).length > 0, label: 'Create your first order', action: onAddOrder },
-    { done: !!user.avatar, label: 'Upload a profile photo', to: '/dashboard/settings' },
+    { done: !!user.avatarUrl, label: 'Upload a profile photo', to: '/dashboard/settings' },
     { done: user.preferences?.currency !== 'USD' || !!user.phone || !!user.location, label: 'Set currency and details', to: '/dashboard/settings?tab=preferences' },
   ];
   const done = steps.filter((s) => s.done).length;

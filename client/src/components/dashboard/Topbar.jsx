@@ -58,12 +58,12 @@ export function Topbar({ onMenu }) {
         <Dropdown
           trigger={({ toggle }) => (
             <button onClick={toggle} className="flex items-center gap-2 rounded-full p-0.5 transition hover:bg-ink-100" aria-label="Account menu">
-              <Avatar src={user?.avatar} name={user?.name} size={38} />
+              <Avatar src={user?.avatarUrl} name={user?.name} size={38} />
             </button>
           )}
         >
           <div className="flex items-center gap-3 px-2.5 py-2">
-            <Avatar src={user?.avatar} name={user?.name} size={40} />
+            <Avatar src={user?.avatarUrl} name={user?.name} size={40} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{user?.name}</p>
               <p className="truncate text-xs text-ink-500">{user?.email}</p>

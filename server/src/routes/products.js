@@ -2,7 +2,7 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import Product, { PRODUCT_CATEGORIES } from '../models/Product.js';
 import { protect } from '../middleware/auth.js';
-import { asyncHandler, HttpError, escapeRegex, isDataImage, qstr, round2, str, toNumber } from '../utils/asyncHandler.js';
+import { asyncHandler, HttpError, escapeRegex, isDataImage, qstr, round2, sendDataImage, str, toNumber } from '../utils/asyncHandler.js';
 import { generateUniqueSku } from '../utils/sku.js';
 import { notify, notifyStockLevel } from '../utils/notify.js';
 
@@ -52,7 +52,10 @@ function parseProductBody(body = {}, { partial = false, defaults = {} } = {}) {
   if (has('image')) {
     if (body.image && !isDataImage(body.image)) errors.image = 'Upload a PNG, JPG or WebP image';
     else if (body.image && body.image.length > 1_000_000) errors.image = 'Image is too large';
-    else out.image = body.image || '';
+    else {
+      out.image = body.image || '';
+      out.imageUpdatedAt = out.image ? new Date() : null;
+    }
   }
   if (has('sku')) out.sku = str(body.sku).trim().toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9_-]/g, '');
 
@@ -118,6 +121,16 @@ router.get(
     summary.costValue = round2(summary.costValue);
 
     res.json({ products, summary });
+  })
+);
+
+// Product photo as a real image (kept out of JSON responses so lists stay small)
+router.get(
+  '/:id/image',
+  asyncHandler(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) throw new HttpError(404, 'Image not found');
+    const product = await Product.findOne({ _id: req.params.id, owner: req.user._id }).select('+image');
+    sendDataImage(res, product?.image);
   })
 );
 

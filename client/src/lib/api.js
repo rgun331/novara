@@ -1,26 +1,16 @@
-const TOKEN_KEY = 'novara.token';
-
 // Empty for a single deployment (same origin). Set VITE_API_URL when the API lives on another domain.
 export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
-export const tokenStore = {
-  get() {
-    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
-  },
-  /** Replace the token in whichever storage currently holds it (keeps the "remember me" choice). */
-  replace(token) {
-    const remember = !sessionStorage.getItem(TOKEN_KEY);
-    this.set(token, remember);
-  },
-  set(token, remember = true) {
-    this.clear();
-    (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
-  },
-  clear() {
-    localStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
-  },
-};
+/** Prefixes server-relative asset URLs (product images, avatars) with the API origin when needed. */
+export const assetUrl = (path) => (path && path.startsWith('/api/') ? `${API_BASE}${path}` : path || '');
+
+// Sessions are httpOnly cookies now. Remove tokens left in storage by older versions.
+try {
+  localStorage.removeItem('novara.token');
+  sessionStorage.removeItem('novara.token');
+} catch {
+  /* storage unavailable */
+}
 
 export class ApiError extends Error {
   constructor(status, message, details) {
@@ -44,9 +34,8 @@ export async function api(path, { method = 'GET', body, params, signal } = {}) {
       if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
     });
   }
-  const headers = { Accept: 'application/json' };
-  const token = tokenStore.get();
-  if (token) headers.Authorization = `Bearer ${token}`;
+  // The custom header is the API's CSRF check: cross-site pages cannot send it
+  const headers = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
   let res;
@@ -56,6 +45,7 @@ export async function api(path, { method = 'GET', body, params, signal } = {}) {
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal,
+      credentials: API_BASE ? 'include' : 'same-origin',
     });
   } catch (err) {
     if (err.name === 'AbortError') throw err;
@@ -79,7 +69,8 @@ export async function api(path, { method = 'GET', body, params, signal } = {}) {
   }
 
   if (!res.ok) {
-    if (res.status === 401 && token && onUnauthorized) onUnauthorized();
+    // An expired or revoked session anywhere in the app signs the user out (login failures excluded)
+    if (res.status === 401 && onUnauthorized && !path.startsWith('/auth/')) onUnauthorized();
     throw new ApiError(res.status, data?.message || `Request failed (${res.status})`, data?.details);
   }
   return data;

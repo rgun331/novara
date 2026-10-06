@@ -2,7 +2,8 @@ import { Router } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
-import { protect, signToken } from '../middleware/auth.js';
+import { optionalAuth, protect } from '../middleware/auth.js';
+import { endSession, startSession } from '../utils/session.js';
 import { asyncHandler, HttpError, str } from '../utils/asyncHandler.js';
 import { EMAIL_RE, passwordError } from '../utils/validation.js';
 import { notify } from '../utils/notify.js';
@@ -89,7 +90,8 @@ router.post(
       link: '/dashboard/products',
     });
 
-    res.status(201).json({ token: signToken(user), user: user.toSafeJSON() });
+    startSession(res, user, { remember: true });
+    res.status(201).json({ user: user.toSafeJSON() });
   })
 );
 
@@ -108,12 +110,36 @@ router.post(
 
     user.lastLoginAt = new Date();
     await user.save();
-    res.json({ token: signToken(user), user: user.toSafeJSON() });
+    startSession(res, user, { remember: req.body?.remember !== false });
+    res.json({ user: user.toSafeJSON() });
   })
 );
 
+// Who is signed in? Always 200 so the app can check on load without logging errors for guests.
+router.get('/session', optionalAuth, (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ user: req.user ? req.user.toSafeJSON() : null });
+});
+
 router.get('/me', protect, (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.json({ user: req.user.toSafeJSON() });
 });
+
+router.post('/logout', (req, res) => {
+  endSession(res);
+  res.json({ message: 'Signed out' });
+});
+
+// Revokes every session for this account, on all devices
+router.post(
+  '/logout-all',
+  protect,
+  asyncHandler(async (req, res) => {
+    await User.updateOne({ _id: req.user._id }, { $inc: { tokenVersion: 1 } });
+    endSession(res);
+    res.json({ message: 'Signed out on all devices' });
+  })
+);
 
 export default router;
