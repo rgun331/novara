@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from '@phosphor-icons/react';
 import { Button } from '../ui/Button';
@@ -6,7 +6,34 @@ import { Reveal } from './Reveal';
 
 const ParcelScene = lazy(() => import('./ParcelScene'));
 
+/** Mounts children only once the element is near the viewport (saves ~240 KB of 3D code on first load). */
+function useNearViewport(margin = '400px') {
+  const ref = useRef(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return undefined;
+    if (!('IntersectionObserver' in window)) {
+      setNear(true);
+      return undefined;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setNear(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: margin }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [margin, near]);
+  return [ref, near];
+}
+
 export function CtaBlock() {
+  const [sceneRef, showScene] = useNearViewport();
   return (
     <section className="mx-auto max-w-[1320px] px-5 pb-24 md:px-8">
       <Reveal className="grain relative grid overflow-hidden rounded-[32px] bg-ink-900 text-paper lg:grid-cols-[1.05fr_1fr]">
@@ -26,11 +53,13 @@ export function CtaBlock() {
             </Button>
           </div>
         </div>
-        <div className="relative h-[320px] md:h-[400px] lg:h-auto lg:min-h-[440px]">
+        <div ref={sceneRef} className="relative h-[320px] md:h-[400px] lg:h-auto lg:min-h-[440px]">
           <div aria-hidden className="absolute inset-0 bg-[radial-gradient(closest-side_at_55%_50%,rgba(63,115,93,0.45),transparent)]" />
-          <Suspense fallback={null}>
-            <ParcelScene />
-          </Suspense>
+          {showScene && (
+            <Suspense fallback={null}>
+              <ParcelScene />
+            </Suspense>
+          )}
         </div>
       </Reveal>
     </section>

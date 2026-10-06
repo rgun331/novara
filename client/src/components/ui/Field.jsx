@@ -30,7 +30,7 @@ export function Field({ label, hint, error, htmlFor, required, className, childr
 }
 
 const base =
-  'w-full rounded-xl border bg-white text-sm text-ink-900 placeholder:text-ink-400 transition-[border-color,box-shadow] duration-150 outline-none ' +
+  'w-full rounded-xl border bg-white text-sm text-ink-900 placeholder:text-ink-500 transition-[border-color,box-shadow] duration-150 outline-none ' +
   'focus:border-pine-500 focus:ring-4 focus:ring-pine-100 disabled:bg-ink-100 disabled:text-ink-500';
 
 export const Input = forwardRef(function Input({ className, invalid, prefix, suffix, ...props }, ref) {
@@ -44,7 +44,7 @@ export const Input = forwardRef(function Input({ className, invalid, prefix, suf
         )}
       >
         {prefix && <span className="pl-3.5 text-sm text-ink-500">{prefix}</span>}
-        <input ref={ref} className="h-10 w-full min-w-0 bg-transparent px-3 text-sm text-ink-900 outline-none placeholder:text-ink-400" {...props} />
+        <input ref={ref} className="h-10 w-full min-w-0 bg-transparent px-3 text-sm text-ink-900 outline-none placeholder:text-ink-500" {...props} />
         {suffix && <span className="pr-1.5">{suffix}</span>}
       </div>
     );

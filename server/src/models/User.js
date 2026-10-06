@@ -36,6 +36,8 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String, default: '' },
     preferences: { type: preferencesSchema, default: () => ({}) },
     lastLoginAt: { type: Date },
+    // Bumped on every password change; tokens carrying an older version are rejected
+    tokenVersion: { type: Number, default: 0, select: false },
   },
   { timestamps: true }
 );
@@ -43,6 +45,7 @@ const userSchema = new mongoose.Schema(
 userSchema.pre('save', async function hashPassword() {
   if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 11);
+  if (!this.isNew) this.tokenVersion = (this.tokenVersion || 0) + 1;
 });
 
 userSchema.methods.comparePassword = function comparePassword(candidate) {
@@ -52,6 +55,7 @@ userSchema.methods.comparePassword = function comparePassword(candidate) {
 userSchema.methods.toSafeJSON = function toSafeJSON() {
   const obj = this.toObject({ versionKey: false });
   delete obj.password;
+  delete obj.tokenVersion;
   obj.id = String(obj._id);
   return obj;
 };

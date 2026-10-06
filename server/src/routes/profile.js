@@ -3,12 +3,17 @@ import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
-import { asyncHandler, HttpError, isDataImage, toNumber } from '../utils/asyncHandler.js';
+import { asyncHandler, HttpError, isDataImage, str, toNumber } from '../utils/asyncHandler.js';
+import { protect, signToken } from '../middleware/auth.js';
+import { DEMO } from '../seed.js';
 import { notify } from '../utils/notify.js';
 
 const router = Router();
 router.use(protect);
+
+// The shared demo login must keep working for everyone
+const isDemo = (user) => user.email === DEMO.email;
+const DEMO_LOCKED = 'The demo account email and password cannot be changed. Sign up to get your own workspace.';
 
 const PROFILE_FIELDS = ['name', 'businessName', 'jobTitle', 'phone', 'location', 'website', 'bio'];
 
@@ -20,6 +25,7 @@ router.patch(
       if (typeof req.body[key] === 'string') user[key] = req.body[key].trim();
     }
     if (typeof req.body.email === 'string' && req.body.email.trim().toLowerCase() !== user.email) {
+      if (isDemo(user)) throw new HttpError(403, DEMO_LOCKED, { email: 'Locked on the demo account' });
       const email = req.body.email.trim().toLowerCase();
       const taken = await User.exists({ email, _id: { $ne: user._id } });
       if (taken) throw new HttpError(409, 'This email is already in use.', { email: 'This email is already registered' });
@@ -72,25 +78,29 @@ router.patch(
 router.put(
   '/password',
   asyncHandler(async (req, res) => {
-    const { currentPassword = '', newPassword = '' } = req.body || {};
-    const user = await User.findById(req.user._id).select('+password');
+    const currentPassword = str(req.body?.currentPassword);
+    const newPassword = str(req.body?.newPassword);
+    if (isDemo(req.user)) throw new HttpError(403, DEMO_LOCKED);
+    const user = await User.findById(req.user._id).select('+password +tokenVersion');
     if (!(await user.comparePassword(currentPassword))) {
       throw new HttpError(400, 'Current password is incorrect.', { currentPassword: 'Current password is incorrect' });
     }
-    if (newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
+    if (newPassword.length < 8 || newPassword.length > 128 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
       throw new HttpError(400, 'Please check the highlighted fields.', { newPassword: 'Use 8+ characters with letters and numbers' });
     }
     user.password = newPassword;
     await user.save();
     await notify(user, { type: 'account', title: 'Password changed', message: 'If this was not you, reset your password immediately.', link: '/dashboard/settings' });
-    res.json({ message: 'Password updated' });
+    // Older sessions are now revoked; hand this device a fresh token so it stays signed in
+    res.json({ message: 'Password updated', token: signToken(user) });
   })
 );
 
 router.delete(
   '/',
   asyncHandler(async (req, res) => {
-    const { password = '' } = req.body || {};
+    const password = str(req.body?.password);
+    if (isDemo(req.user)) throw new HttpError(403, 'The demo account cannot be deleted. Sign up to get your own workspace.');
     const user = await User.findById(req.user._id).select('+password');
     if (!(await user.comparePassword(password))) throw new HttpError(400, 'Password is incorrect.', { password: 'Password is incorrect' });
     await Promise.all([

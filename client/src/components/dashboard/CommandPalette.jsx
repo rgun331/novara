@@ -99,14 +99,14 @@ export function CommandPalette() {
             aria-label="Command palette"
           >
             <div className="flex items-center gap-3 border-b border-line px-4">
-              <MagnifyingGlass className="size-5 text-ink-400" />
+              <MagnifyingGlass className="size-5 text-ink-500" />
               <input
                 ref={inputRef}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="Search products, orders or jump to a page"
-                className="h-14 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-400"
+                className="h-14 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-500"
               />
               <kbd className="rounded-md border border-line-strong px-1.5 py-0.5 font-mono text-[11px] text-ink-500">Esc</kbd>
             </div>
@@ -117,7 +117,7 @@ export function CommandPalette() {
                 lastGroup = it.group;
                 return (
                   <div key={`${it.group}-${it.id}`}>
-                    {header && <p className="px-3 pb-1 pt-3 text-[11px] font-semibold text-ink-400">{header}</p>}
+                    {header && <p className="px-3 pb-1 pt-3 text-[11px] font-semibold text-ink-500">{header}</p>}
                     <button
                       onMouseEnter={() => setActive(i)}
                       onClick={() => {
@@ -128,7 +128,7 @@ export function CommandPalette() {
                     >
                       <it.icon className={cn('size-4.5', i === active ? 'text-kraft-300' : 'text-ink-500')} />
                       <span className="flex-1 truncate font-medium">{it.label}</span>
-                      {it.sub && <span className={cn('font-mono text-xs', i === active ? 'text-ink-300' : 'text-ink-400')}>{it.sub}</span>}
+                      {it.sub && <span className={cn('font-mono text-xs', i === active ? 'text-ink-300' : 'text-ink-500')}>{it.sub}</span>}
                       {i === active && <ArrowElbowDownLeft className="size-4 text-ink-300" />}
                     </button>
                   </div>

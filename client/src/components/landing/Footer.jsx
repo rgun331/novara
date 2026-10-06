@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom';
-import { GithubLogo, InstagramLogo, LinkedinLogo } from '@phosphor-icons/react';
 import { Logo } from '../brand/Logo';
 
 const COLS = [
   { title: 'Product', links: [['Features', '#features'], ['Workflow', '#workflow'], ['Stories', '#stories'], ['FAQ', '#faq']] },
   { title: 'Account', links: [['Log in', '/login'], ['Sign up', '/signup'], ['Dashboard', '/dashboard']] },
-  { title: 'Company', links: [['About', '#'], ['Privacy', '#'], ['Terms', '#']] },
+  { title: 'Legal', links: [['Privacy', '/privacy'], ['Terms', '/terms'], ['Contact', 'mailto:hello@novara.app']] },
 ];
 
 export function Footer() {
@@ -16,13 +15,6 @@ export function Footer() {
           <div>
             <Logo />
             <p className="mt-4 max-w-[34ch] text-[15px] leading-relaxed text-ink-500">The calm workspace for products, orders, customers and the numbers behind them.</p>
-            <div className="mt-6 flex gap-2">
-              {[InstagramLogo, LinkedinLogo, GithubLogo].map((I, i) => (
-                <a key={i} href="#" aria-label="Social link" className="grid size-10 place-items-center rounded-full border border-line-strong text-ink-600 transition hover:border-ink-900 hover:text-ink-900">
-                  <I className="size-4.5" />
-                </a>
-              ))}
-            </div>
           </div>
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
             {COLS.map((c) => (

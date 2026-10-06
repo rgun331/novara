@@ -7,25 +7,25 @@ export function AuthLayout({ children, image, imageAlt, quote, author, role }) {
   return (
     <div className="grid min-h-[100dvh] bg-canvas lg:grid-cols-[1fr_1.05fr]">
       <div className="flex flex-col px-5 py-6 sm:px-10 lg:px-14">
-        <div className="flex items-center justify-between">
+        <header className="flex items-center justify-between">
           <Link to="/" aria-label="Novara home">
             <Logo />
           </Link>
           <Link to="/" className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-medium text-ink-600 transition hover:bg-ink-100 hover:text-ink-900">
             <ArrowLeft className="size-3.5" weight="bold" /> Back to site
           </Link>
-        </div>
-        <motion.div
+        </header>
+        <motion.main
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
           className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center py-12"
         >
           {children}
-        </motion.div>
-        <p className="text-center text-xs text-ink-400 lg:text-left">&copy; {new Date().getFullYear()} Novara</p>
+        </motion.main>
+        <footer className="text-center text-xs text-ink-500 lg:text-left">&copy; {new Date().getFullYear()} Novara</footer>
       </div>
-      <div className="relative hidden p-3 lg:block">
+      <aside className="relative hidden p-3 lg:block" aria-label="Customer story">
         <motion.div
           initial={{ clipPath: 'inset(6% 6% 6% 6% round 28px)', opacity: 0.6 }}
           animate={{ clipPath: 'inset(0% 0% 0% 0% round 28px)', opacity: 1 }}
@@ -54,7 +54,7 @@ export function AuthLayout({ children, image, imageAlt, quote, author, role }) {
             </figcaption>
           </motion.figure>
         </motion.div>
-      </div>
+      </aside>
     </div>
   );
 }

@@ -115,7 +115,7 @@ export default function Orders() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1">
-              <MagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
+              <MagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-500" />
               <Input
                 value={search}
                 onChange={(e) => {
@@ -127,7 +127,7 @@ export default function Orders() {
                 aria-label="Search orders"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-ink-400 hover:bg-ink-100" aria-label="Clear search">
+                <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-ink-500 hover:bg-ink-100" aria-label="Clear search">
                   <X className="size-3.5" weight="bold" />
                 </button>
               )}
@@ -193,7 +193,7 @@ export default function Orders() {
                     <th className="py-3 pr-4 font-medium">Payment</th>
                     <th className="py-3 pr-4 font-medium">Status</th>
                     <th className="py-3 pr-4 font-medium">Date</th>
-                    <th className="w-14 py-3 pr-4" />
+                    <th className="w-14 py-3 pr-4"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -222,19 +222,19 @@ export default function Orders() {
                         </td>
                         <td className="py-3.5 pr-4 text-ink-600">
                           <span className="tabular">{units}</span> unit{units === 1 ? '' : 's'}
-                          <span className="block max-w-[180px] truncate text-xs text-ink-400">{o.items.map((it) => it.name).join(', ')}</span>
+                          <span className="block max-w-[180px] truncate text-xs text-ink-500">{o.items.map((it) => it.name).join(', ')}</span>
                         </td>
                         <td className="py-3.5 pr-4 text-right font-semibold tabular">{formatMoney(o.total, currency)}</td>
                         <td className="py-3.5 pr-4">
                           <Badge tone={PAYMENT_TONE[o.paymentStatus]}>{titleCase(o.paymentStatus)}</Badge>
-                          <span className="mt-1 block text-xs text-ink-400">{titleCase(o.paymentMethod)}</span>
+                          <span className="mt-1 block text-xs text-ink-500">{titleCase(o.paymentMethod)}</span>
                         </td>
                         <td className="py-3.5 pr-4">
                           <Badge tone={ORDER_STATUS_TONE[o.status]}>{titleCase(o.status)}</Badge>
                         </td>
                         <td className="py-3.5 pr-4 text-ink-500">{formatDateTime(o.createdAt)}</td>
                         <td className="py-3.5 pr-4">
-                          <span className="grid size-8 place-items-center rounded-full text-ink-400 hover:bg-ink-100 hover:text-ink-900">
+                          <span className="grid size-8 place-items-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-ink-900">
                             <Eye className="size-4.5" />
                           </span>
                         </td>
@@ -345,7 +345,7 @@ function OrderDrawer({ order, open, onClose, currency, onChanged }) {
                   {flow.map((s, i) => (
                     <div key={s}>
                       <div className={cn('h-1.5 rounded-full transition-colors', i <= idx ? 'bg-pine-600' : 'bg-ink-100')} />
-                      <p className={cn('mt-1.5 text-[11px] font-medium', i <= idx ? 'text-ink-800' : 'text-ink-400')}>{titleCase(s)}</p>
+                      <p className={cn('mt-1.5 text-[11px] font-medium', i <= idx ? 'text-ink-800' : 'text-ink-500')}>{titleCase(s)}</p>
                     </div>
                   ))}
                 </div>

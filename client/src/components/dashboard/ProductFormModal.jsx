@@ -185,9 +185,9 @@ export function ProductFormModal() {
               <img src={form.image} alt="Product preview" className="absolute inset-0 size-full object-cover" />
             ) : (
               <span className="flex flex-col items-center gap-2 px-3 text-center text-xs">
-                <ImageSquare className="size-7 text-ink-400 transition group-hover:text-pine-600" weight="duotone" />
+                <ImageSquare className="size-7 text-ink-500 transition group-hover:text-pine-600" weight="duotone" />
                 Upload a photo
-                <span className="text-[11px] text-ink-400">PNG, JPG or WebP</span>
+                <span className="text-[11px] text-ink-500">PNG, JPG or WebP</span>
               </span>
             )}
           </button>
@@ -233,7 +233,7 @@ export function ProductFormModal() {
               readOnly={skuAuto}
               onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value.toUpperCase() }))}
               invalid={!!errors.sku}
-              prefix={<Barcode className="size-4 text-ink-400" />}
+              prefix={<Barcode className="size-4 text-ink-500" />}
               suffix={
                 <button
                   type="button"
@@ -254,10 +254,10 @@ export function ProductFormModal() {
             <Input id="p-cost" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={form.cost} onChange={set('cost')} prefix={currency} />
           </Field>
           <Field label="Stock on hand" htmlFor="p-stock" error={errors.stock}>
-            <Input id="p-stock" type="number" inputMode="numeric" min="0" step="1" placeholder="0" value={form.stock} onChange={set('stock')} invalid={!!errors.stock} suffix={<span className="pr-2 text-xs text-ink-400">units</span>} />
+            <Input id="p-stock" type="number" inputMode="numeric" min="0" step="1" placeholder="0" value={form.stock} onChange={set('stock')} invalid={!!errors.stock} suffix={<span className="pr-2 text-xs text-ink-500">units</span>} />
           </Field>
           <Field label="Low stock alert at" htmlFor="p-low" hint="Notify me when stock reaches this level">
-            <Input id="p-low" type="number" inputMode="numeric" min="0" step="1" value={form.lowStockThreshold} onChange={set('lowStockThreshold')} suffix={<span className="pr-2 text-xs text-ink-400">units</span>} />
+            <Input id="p-low" type="number" inputMode="numeric" min="0" step="1" value={form.lowStockThreshold} onChange={set('lowStockThreshold')} suffix={<span className="pr-2 text-xs text-ink-500">units</span>} />
           </Field>
           <Field label="Status" className="sm:col-span-2">
             <Segmented

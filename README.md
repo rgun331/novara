@@ -13,6 +13,7 @@ Novara is a MERN-stack workspace for small product businesses. You can manage pr
   - **Notifications**: a bell with an unread badge, plus a full feed you can filter, mark read or unread, delete and clear. You get notifications for orders, low or out-of-stock products, product changes and account events.
   - **Settings**: profile and profile photo upload (cropped and compressed in the browser). Preferences cover currency, tax, SKU prefix, low stock level and notification toggles. Also: change password and delete account.
   - **Command palette** (Ctrl/Cmd + K) for live product and order search, quick actions and navigation.
+- **Privacy and Terms** pages at `/privacy` and `/terms`.
 
 ## Stack
 
@@ -72,7 +73,7 @@ npm start        # builds the client and serves it from Express (needs MONGODB_U
 | --- | --- | --- |
 | `PORT` | `5000` | API port |
 | `MONGODB_URI` | not set | Local MongoDB or Atlas. If unset in development, the built-in database is used |
-| `JWT_SECRET` | dev value | **Set a long random string in production** |
+| `JWT_SECRET` | dev value | **Required in production**: a random string of 32+ characters (the server refuses to start otherwise) |
 | `JWT_EXPIRES_IN` | `7d` | Token lifetime |
 | `CLIENT_ORIGIN` | `*` | CORS origins, comma-separated |
 | `SERVE_CLIENT` | `false` (`true` in production) | Serve `client/dist` from Express |
@@ -80,6 +81,15 @@ npm start        # builds the client and serves it from Express (needs MONGODB_U
 | `EMBEDDED_DB_PORT` | `27018` | Port for the built-in dev database |
 
 For the client, `VITE_API_PROXY` changes where Vite proxies `/api` (default `http://127.0.0.1:5000`).
+
+### Security
+
+- Passwords are hashed with bcrypt. Login takes the same time whether or not the email exists, and login/sign-up are rate limited.
+- Session tokens are HS256 JWTs pinned to that algorithm. Changing your password signs out every other session (token versioning), while the current device receives a fresh token.
+- Every query is scoped to the logged-in owner, so one workspace can never read or change another's products, orders or notifications.
+- Request values are type-checked, so objects or arrays sent in place of strings get a 400, never a crash or an injected query operator.
+- When Express serves the built app, it sends a strict Content Security Policy (everything is self-hosted, no third-party requests) along with Helmet's other security headers.
+- The shared demo account's email and password are locked, and the account cannot be deleted.
 
 ### Resilience
 

@@ -24,7 +24,24 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(
   helmet({
-    contentSecurityPolicy: false, // SPA serves its own assets; tighten per deployment if needed
+    // Strict CSP when Express serves the built app (everything is self-hosted). Off for the API-only dev server.
+    contentSecurityPolicy: config.serveClient
+      ? {
+          useDefaults: false,
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"], // toasts and animation libraries inject style tags
+            imgSrc: ["'self'", 'data:', 'blob:'],
+            fontSrc: ["'self'", 'data:'],
+            connectSrc: ["'self'"],
+            workerSrc: ["'self'", 'blob:'],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+          },
+        }
+      : false,
     crossOriginEmbedderPolicy: false,
     frameguard: false,
   })

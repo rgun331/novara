@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
-import { asyncHandler, HttpError } from '../utils/asyncHandler.js';
+import { asyncHandler, HttpError, qstr } from '../utils/asyncHandler.js';
 
 const router = Router();
 router.use(protect);
@@ -9,7 +9,7 @@ router.use(protect);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { filter = 'all', type = '', limit = 50 } = req.query;
+    const [filter, type, limit] = ['filter', 'type', 'limit'].map((k) => qstr(req.query[k]));
     const q = { owner: req.user._id };
     if (filter === 'unread') q.read = false;
     if (type) q.type = type;

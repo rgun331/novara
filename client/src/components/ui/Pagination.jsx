@@ -13,7 +13,7 @@ export function Pagination({ page, pageSize, total, onPage, onPageSize }) {
           {from}-{to} of {total}
         </span>
         {onPageSize && (
-          <select value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))} className="rounded-full border border-line-strong bg-paper px-2 py-1 text-xs text-ink-700 outline-none">
+          <select aria-label="Rows per page" value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))} className="rounded-full border border-line-strong bg-paper px-2 py-1 text-xs text-ink-700 outline-none focus-visible:ring-2 focus-visible:ring-pine-500">
             {[10, 20, 50].map((n) => (
               <option key={n} value={n}>
                 {n} / page

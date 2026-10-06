@@ -74,7 +74,7 @@ export function NotificationBell() {
                     <span className="min-w-0 flex-1">
                       <span className={cn('block truncate text-[13px]', n.read ? 'font-medium text-ink-700' : 'font-semibold text-ink-900')}>{n.title}</span>
                       <span className="line-clamp-2 block text-xs leading-relaxed text-ink-500">{n.message}</span>
-                      <span className="mt-1 block text-[11px] text-ink-400">{timeAgo(n.createdAt)}</span>
+                      <span className="mt-1 block text-[11px] text-ink-500">{timeAgo(n.createdAt)}</span>
                     </span>
                     {!n.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-pine-500" aria-label="Unread" />}
                   </button>

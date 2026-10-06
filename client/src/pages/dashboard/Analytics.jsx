@@ -60,7 +60,7 @@ function BarList({ rows, format }) {
             <span className="min-w-0 truncate font-medium text-ink-800">{r.name}</span>
             <span className="shrink-0 font-semibold tabular">{format(r.value)}</span>
           </div>
-          {r.sub && <p className="font-mono text-[11px] text-ink-400">{r.sub}</p>}
+          {r.sub && <p className="font-mono text-[11px] text-ink-500">{r.sub}</p>}
           <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ink-100/70">
             <motion.div
               className="h-full rounded-full"

@@ -2,7 +2,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import User from '../models/User.js';
 import { protect, signToken } from '../middleware/auth.js';
-import { asyncHandler, HttpError } from '../utils/asyncHandler.js';
+import bcrypt from 'bcryptjs';
+import { asyncHandler, HttpError, str } from '../utils/asyncHandler.js';
 import { notify } from '../utils/notify.js';
 
 const router = Router();
@@ -14,6 +15,9 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: 'Too many attempts. Please wait a few minutes and try again.' },
 });
+
+// Compared against when the email is unknown so both paths take the same time (no account probing by timing)
+const DUMMY_HASH = bcrypt.hashSync('novara-timing-equalizer', 11);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -28,11 +32,13 @@ router.post(
   '/signup',
   authLimiter,
   asyncHandler(async (req, res) => {
-    const { name = '', email = '', password = '', businessName = '' } = req.body || {};
+    const b = req.body || {};
+    const [name, email, password, businessName] = [str(b.name), str(b.email), str(b.password), str(b.businessName)];
     const errors = {};
     if (name.trim().length < 2) errors.name = 'Enter your full name';
     if (!EMAIL_RE.test(email.trim())) errors.email = 'Enter a valid email address';
-    if (password.length < 8) errors.password = 'Use at least 8 characters';
+    if (password.length > 128) errors.password = 'Use 128 characters or fewer';
+    else if (password.length < 8) errors.password = 'Use at least 8 characters';
     else if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) errors.password = 'Mix letters and numbers';
     if (Object.keys(errors).length) throw new HttpError(400, 'Please check the highlighted fields.', errors);
 
@@ -63,11 +69,13 @@ router.post(
   '/login',
   authLimiter,
   asyncHandler(async (req, res) => {
-    const { email = '', password = '' } = req.body || {};
+    const email = str(req.body?.email).trim().toLowerCase();
+    const password = str(req.body?.password);
     if (!email || !password) throw new HttpError(400, 'Enter your email and password.');
 
-    const user = await User.findOne({ email: String(email).trim().toLowerCase() }).select('+password');
-    if (!user || !(await user.comparePassword(password))) {
+    const user = await User.findOne({ email }).select('+password +tokenVersion');
+    const valid = user ? await user.comparePassword(password) : await bcrypt.compare(password, DUMMY_HASH).then(() => false);
+    if (!valid) {
       throw new HttpError(401, 'That email and password combination is not right.');
     }
 

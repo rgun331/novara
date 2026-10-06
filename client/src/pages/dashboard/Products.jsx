@@ -196,7 +196,7 @@ export default function Products() {
         {/* Toolbar */}
         <div className="flex flex-col gap-3 border-b border-line p-4 xl:flex-row xl:items-center">
           <div className="relative flex-1 xl:max-w-sm">
-            <MagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
+            <MagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-500" />
             <Input
               value={search}
               onChange={(e) => {
@@ -208,7 +208,7 @@ export default function Products() {
               aria-label="Search products"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-ink-400 hover:bg-ink-100" aria-label="Clear search">
+              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-ink-500 hover:bg-ink-100" aria-label="Clear search">
                 <X className="size-3.5" weight="bold" />
               </button>
             )}
@@ -338,7 +338,7 @@ export default function Products() {
                     <th className="py-3 pr-4 font-medium">Stock</th>
                     <th className="py-3 pr-4 font-medium">Status</th>
                     <th className="py-3 pr-4 font-medium">Updated</th>
-                    <th className="w-14 py-3 pr-4" />
+                    <th className="w-14 py-3 pr-4"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -369,7 +369,7 @@ export default function Products() {
                           <td className="py-3.5 pr-4">
                             <button onClick={() => copySku(p.sku)} className="group/sku inline-flex items-center gap-1.5 rounded-lg bg-canvas px-2 py-1 font-mono text-xs text-ink-700 ring-1 ring-line hover:ring-pine-300" title="Copy SKU">
                               {p.sku}
-                              <Copy className="size-3.5 text-ink-400 group-hover/sku:text-pine-600" />
+                              <Copy className="size-3.5 text-ink-500 group-hover/sku:text-pine-600" />
                             </button>
                           </td>
                           <td className="py-3.5 pr-4 text-right font-medium tabular">{formatMoney(p.price, currency)}</td>

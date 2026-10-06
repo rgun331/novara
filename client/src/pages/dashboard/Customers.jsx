@@ -100,7 +100,7 @@ export default function Customers() {
       <div className="overflow-hidden rounded-2xl border border-line bg-paper shadow-soft">
         <div className="flex flex-col gap-3 border-b border-line p-4 md:flex-row md:items-center md:justify-between">
           <div className="relative md:w-80">
-            <MagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
+            <MagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-500" />
             <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search name, email or phone" className="pl-10" aria-label="Search customers" />
           </div>
           <Segmented

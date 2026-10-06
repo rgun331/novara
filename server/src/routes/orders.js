@@ -4,7 +4,7 @@ import Order, { ORDER_CHANNELS, ORDER_STATUSES, PAYMENT_METHODS, PAYMENT_STATUSE
 import Product from '../models/Product.js';
 import { nextSequence } from '../models/Counter.js';
 import { protect } from '../middleware/auth.js';
-import { asyncHandler, HttpError, escapeRegex, round2, toNumber } from '../utils/asyncHandler.js';
+import { asyncHandler, HttpError, escapeRegex, qstr, round2, toNumber } from '../utils/asyncHandler.js';
 import { notify, notifyStockLevel } from '../utils/notify.js';
 
 const router = Router();
@@ -60,7 +60,7 @@ async function checkStockAlerts(user, items) {
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { search = '', status = '', paymentStatus = '', limit } = req.query;
+    const [search, status, paymentStatus, limit] = ['search', 'status', 'paymentStatus', 'limit'].map((k) => qstr(req.query[k]));
     const filter = { owner: req.user._id };
     if (status) filter.status = status;
     if (paymentStatus) filter.paymentStatus = paymentStatus;
@@ -240,9 +240,15 @@ router.delete(
   asyncHandler(async (req, res) => {
     const order = await Order.findOne({ _id: req.params.id, owner: req.user._id });
     if (!order) throw new HttpError(404, 'Order not found');
-    if (order.status !== 'cancelled' && order.status !== 'delivered') await releaseStock(req.user._id, order.items);
+    const returnsStock = order.status !== 'cancelled' && order.status !== 'delivered';
+    if (returnsStock) await releaseStock(req.user._id, order.items);
     await Order.deleteOne({ _id: order._id });
-    await notify(req.user, { type: 'order', title: `Order ${order.orderNumber} deleted`, message: 'Reserved stock was returned to inventory.', link: '/dashboard/orders' });
+    await notify(req.user, {
+      type: 'order',
+      title: `Order ${order.orderNumber} deleted`,
+      message: returnsStock ? 'Reserved stock was returned to inventory.' : 'The order was removed from your records.',
+      link: '/dashboard/orders',
+    });
     res.json({ message: 'Order deleted' });
   })
 );

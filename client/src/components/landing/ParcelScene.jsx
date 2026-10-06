@@ -54,6 +54,8 @@ function Rig({ children }) {
 export default function ParcelScene() {
   const wrap = useRef(null);
   const [visible, setVisible] = useState(false);
+  // Respect "reduce motion": render a still frame instead of a floating loop
+  const [reduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
   useEffect(() => {
     const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: '120px' });
     if (wrap.current) io.observe(wrap.current);
@@ -61,14 +63,13 @@ export default function ParcelScene() {
   }, []);
 
   return (
-    <div ref={wrap} className="size-full">
+    <div ref={wrap} className="size-full" aria-hidden="true">
       <Canvas
-        frameloop={visible ? 'always' : 'never'}
-        shadows
+        frameloop={reduced ? 'demand' : visible ? 'always' : 'never'}
+        shadows="percentage"
         dpr={[1, 1.75]}
         camera={{ position: [0, 0.6, 6.2], fov: 38 }}
         gl={{ antialias: true, alpha: true }}
-        aria-label="Floating parcels"
       >
         <ambientLight intensity={0.55} />
         <hemisphereLight args={['#F3F4F0', '#17201C', 0.6]} />

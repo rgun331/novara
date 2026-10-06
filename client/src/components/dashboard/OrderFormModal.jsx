@@ -196,7 +196,7 @@ export function OrderFormModal() {
                       <button
                         type="button"
                         onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((x) => x.key !== l.key) : [newLine()]))}
-                        className="grid size-9 place-items-center rounded-full text-ink-400 hover:bg-rose-soft hover:text-rose-ink"
+                        className="grid size-9 place-items-center rounded-full text-ink-500 hover:bg-rose-soft hover:text-rose-ink"
                         aria-label="Remove line"
                       >
                         <Trash className="size-4" />

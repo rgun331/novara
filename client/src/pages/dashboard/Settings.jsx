@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Camera, Globe, LockKey, MapPin, Phone, SlidersHorizontal, Trash, UploadSimple, UserCircle, Warning } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationsContext';
-import { api } from '../../lib/api';
+import { api, tokenStore } from '../../lib/api';
 import { resizeImage } from '../../lib/image';
 import { formatDate, formatMoney } from '../../lib/format';
 import { skuParts } from '../../lib/sku';
@@ -398,7 +398,9 @@ function SecurityTab() {
     if (Object.keys(er).length) return setErrors(er);
     setSaving(true);
     try {
-      await api('/profile/password', { method: 'PUT', body: { currentPassword: form.currentPassword, newPassword: form.newPassword } });
+      const d = await api('/profile/password', { method: 'PUT', body: { currentPassword: form.currentPassword, newPassword: form.newPassword } });
+      // Other sessions are signed out by the server; keep this one signed in with the fresh token
+      if (d.token) tokenStore.replace(d.token);
       setForm({ currentPassword: '', newPassword: '', confirm: '' });
       toast.success('Password updated');
     } catch (err) {

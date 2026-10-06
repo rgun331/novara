@@ -4,6 +4,11 @@ export const tokenStore = {
   get() {
     return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
   },
+  /** Replace the token in whichever storage currently holds it (keeps the "remember me" choice). */
+  replace(token) {
+    const remember = !sessionStorage.getItem(TOKEN_KEY);
+    this.set(token, remember);
+  },
   set(token, remember = true) {
     this.clear();
     (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);

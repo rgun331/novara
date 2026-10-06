@@ -199,7 +199,7 @@ export default function Overview() {
                   </div>
                   <div className="text-right">
                     <p className={cn('text-sm font-semibold tabular', p.stock <= 0 ? 'text-rose-ink' : 'text-amber-ink')}>{p.stock}</p>
-                    <p className="text-[11px] text-ink-400">of {p.threshold}</p>
+                    <p className="text-[11px] text-ink-500">of {p.threshold}</p>
                   </div>
                 </li>
               ))}

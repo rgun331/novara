@@ -7,6 +7,7 @@ const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const Legal = lazy(() => import('./pages/Legal'));
 const DashboardLayout = lazy(() => import('./components/dashboard/DashboardLayout'));
 const Overview = lazy(() => import('./pages/dashboard/Overview'));
 const Products = lazy(() => import('./pages/dashboard/Products'));
@@ -69,6 +70,8 @@ export default function App() {
           <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Settings />} />
         </Route>
+        <Route path="/privacy" element={<Legal />} />
+        <Route path="/terms" element={<Legal />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

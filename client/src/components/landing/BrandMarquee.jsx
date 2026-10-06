@@ -20,7 +20,7 @@ export function BrandMarquee() {
         <div className="relative w-full overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
           <div className="flex w-max animate-marquee items-center gap-14 hover:[animation-play-state:paused]">
             {row.map((b, i) => (
-              <span key={i} className={`flex items-center gap-2 whitespace-nowrap text-lg text-ink-400 ${b.cls}`} aria-hidden={i >= BRANDS.length}>
+              <span key={i} className={`flex items-center gap-2 whitespace-nowrap text-lg text-ink-500 ${b.cls}`} aria-hidden={i >= BRANDS.length}>
                 <b.icon className="size-5" weight="duotone" />
                 {b.name}
               </span>

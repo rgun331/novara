@@ -18,6 +18,8 @@ export const config = {
   seedDemo: process.env.SEED_DEMO ? process.env.SEED_DEMO === 'true' : !isProd,
 };
 
-if (isProd && config.jwtSecret === 'novara-dev-secret-change-me') {
-  console.warn('[novara] JWT_SECRET is not set. Set a strong secret in production.');
+if (isProd && (config.jwtSecret === 'novara-dev-secret-change-me' || config.jwtSecret.length < 32)) {
+  // A known or short secret would let anyone forge login tokens
+  console.error('[novara] JWT_SECRET must be set to a random string of at least 32 characters in production.');
+  process.exit(1);
 }

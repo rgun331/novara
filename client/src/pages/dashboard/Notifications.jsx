@@ -174,12 +174,12 @@ export default function Notifications() {
                         <button onClick={() => open(n)} className="min-w-0 flex-1 text-left">
                           <div className="flex flex-wrap items-baseline gap-x-2">
                             <p className={cn('text-sm', n.read ? 'font-medium text-ink-700' : 'font-semibold text-ink-900')}>{n.title}</p>
-                            <span className="text-xs text-ink-400" title={formatDateTime(n.createdAt)}>
+                            <span className="text-xs text-ink-500" title={formatDateTime(n.createdAt)}>
                               {timeAgo(n.createdAt)}
                             </span>
                           </div>
                           {n.message && <p className="mt-0.5 text-[13px] leading-relaxed text-ink-500">{n.message}</p>}
-                          <span className="mt-1.5 inline-block text-[11px] font-medium uppercase tracking-wide text-ink-400">{m.label}</span>
+                          <span className="mt-1.5 inline-block text-[11px] font-medium uppercase tracking-wide text-ink-500">{m.label}</span>
                         </button>
                         <div className="flex shrink-0 items-start gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100">
                           <button onClick={() => toggleRead(n)} className="grid size-8 place-items-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-ink-900" aria-label={n.read ? 'Mark as unread' : 'Mark as read'} title={n.read ? 'Mark as unread' : 'Mark as read'}>

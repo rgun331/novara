@@ -28,7 +28,7 @@ export function Topbar({ onMenu }) {
 
         <button
           onClick={() => setPaletteOpen(true)}
-          className="hidden h-10 w-[260px] items-center gap-2.5 rounded-full border border-line bg-paper px-3.5 text-[13px] text-ink-400 transition hover:border-line-strong md:flex xl:w-[320px]"
+          className="hidden h-10 w-[260px] items-center gap-2.5 rounded-full border border-line bg-paper px-3.5 text-[13px] text-ink-500 transition hover:border-line-strong md:flex xl:w-[320px]"
         >
           <MagnifyingGlass className="size-4" />
           <span className="flex-1 text-left">Search or jump to</span>

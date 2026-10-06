@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Product, { PRODUCT_CATEGORIES } from '../models/Product.js';
 import { protect } from '../middleware/auth.js';
-import { asyncHandler, HttpError, escapeRegex, isDataImage, round2, toNumber } from '../utils/asyncHandler.js';
+import { asyncHandler, HttpError, escapeRegex, isDataImage, qstr, round2, toNumber } from '../utils/asyncHandler.js';
 import { generateUniqueSku } from '../utils/sku.js';
 import { notify, notifyStockLevel } from '../utils/notify.js';
 
@@ -72,8 +72,8 @@ router.get(
   asyncHandler(async (req, res) => {
     const sku = await generateUniqueSku(req.user._id, {
       prefix: req.user.preferences?.skuPrefix || 'NV',
-      category: req.query.category || '',
-      name: req.query.name || '',
+      category: qstr(req.query.category),
+      name: qstr(req.query.name),
     });
     res.json({ sku });
   })
@@ -83,7 +83,7 @@ router.get(
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const { search = '', category = '', status = '', stock = '' } = req.query;
+    const [search, category, status, stock] = ['search', 'category', 'status', 'stock'].map((k) => qstr(req.query[k]));
     const filter = { owner: req.user._id };
     if (category) filter.category = category;
     if (status) filter.status = status;
@@ -205,7 +205,7 @@ router.post(
     const result = await Product.deleteMany({ owner: req.user._id, _id: { $in: ids } });
     await notify(req.user, {
       type: 'product',
-      title: `${result.deletedCount} products deleted`,
+      title: `${result.deletedCount} ${result.deletedCount === 1 ? 'product' : 'products'} deleted`,
       message: 'The selected products were removed from your catalog.',
       link: '/dashboard/products',
     });
