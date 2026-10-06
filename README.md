@@ -27,20 +27,28 @@ Novara is a MERN-stack workspace for small product businesses. You can manage pr
 ```
 novara/
   client/   React app (Vite). The dev server proxies /api to the API.
-  server/   Express API (auth, profile, products, orders, notifications, analytics)
-  devdb/    Optional MongoDB-compatible dev server, saved to devdb/data (SQLite)
-  scripts/  dev.mjs (runs everything) and smoke.mjs (end-to-end API check)
+  server/   Express + Mongoose API (auth, profile, products, orders, notifications, analytics)
 ```
 
 ## Getting started
 
-Requirements: Node 22.13 or newer (the dev database uses the built-in `node:sqlite`). A real MongoDB is optional.
+Requirements: Node 22.13 or newer.
 
 ```bash
-npm run dev
+npm install      # installs the root, server and client dependencies
+npm run dev      # API on http://localhost:5000, app on http://localhost:5173
 ```
 
-That one command installs missing dependencies, starts the dev database on `:27017`, the API on `http://localhost:5000` and the app on `http://localhost:5173`. If one of them crashes it is restarted automatically.
+You can also run them separately: `npm run server` and `npm run client` (or `npm run dev` inside each folder).
+
+### Database
+
+The API uses MongoDB through Mongoose. Pick one:
+
+- **Your own MongoDB or Atlas:** copy `server/.env.example` to `server/.env` and set `MONGODB_URI`.
+- **Nothing installed?** Leave `MONGODB_URI` unset. In development, the server starts a small built-in MongoDB-compatible database inside the API process and saves data to `server/.data/` (gitignored), so accounts survive restarts. Delete that folder to start fresh.
+
+The built-in database lives in `server/src/embedded-db/` and is a dev dependency only. It is never loaded when `MONGODB_URI` is set, and in production the server requires `MONGODB_URI`.
 
 ### Demo account
 
@@ -52,29 +60,10 @@ In development the API creates a ready-made workspace on startup:
 
 It comes with 8 products, about 60 days of orders, customers and notifications, so the analytics have real data to show. The login page has an **Open demo** button. New sign-ups always start with an empty workspace. Turn the demo off with `SEED_DEMO=false`. In production it is off unless you set `SEED_DEMO=true`.
 
-### Using a real MongoDB
-
-```bash
-cp server/.env.example server/.env   # set MONGODB_URI and JWT_SECRET
-npm run server   # API
-npm run client   # app
-```
-
-`npm run dev` also works: it skips the dev database when `MONGODB_URI` points at a remote host.
-
-### Checking it works
-
-```bash
-npm run smoke                              # against the API on :5000
-API_URL=http://127.0.0.1:5173 npm run smoke   # through the Vite proxy
-```
-
-The smoke test covers sign-up, login, a wrong password, product creation with an auto SKU, an order, stock reservation, analytics and notifications.
-
 ### Production (single port)
 
 ```bash
-npm start        # builds the client and serves it from Express with SERVE_CLIENT=true
+npm start        # builds the client and serves it from Express (needs MONGODB_URI)
 ```
 
 ### Environment (`server/.env`)
@@ -82,12 +71,13 @@ npm start        # builds the client and serves it from Express with SERVE_CLIEN
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `PORT` | `5000` | API port |
-| `MONGODB_URI` | `mongodb://127.0.0.1:27017/novara` | Local MongoDB or Atlas |
+| `MONGODB_URI` | not set | Local MongoDB or Atlas. If unset in development, the built-in database is used |
 | `JWT_SECRET` | dev value | **Set a long random string in production** |
 | `JWT_EXPIRES_IN` | `7d` | Token lifetime |
 | `CLIENT_ORIGIN` | `*` | CORS origins, comma-separated |
 | `SERVE_CLIENT` | `false` (`true` in production) | Serve `client/dist` from Express |
 | `SEED_DEMO` | `true` in dev, `false` in production | Create the demo account on startup |
+| `EMBEDDED_DB_PORT` | `27018` | Port for the built-in dev database |
 
 For the client, `VITE_API_PROXY` changes where Vite proxies `/api` (default `http://127.0.0.1:5000`).
 
@@ -97,7 +87,7 @@ For the client, `VITE_API_PROXY` changes where Vite proxies `/api` (default `htt
 - The login and sign-up pages poll `/api/health` and show a "server is not responding" banner that clears on its own.
 - The client turns gateway errors (502/503/504), HTML error pages and network failures into one friendly message, so raw proxy errors never reach the user.
 
-> **About `devdb`:** it wraps `@rckflr/easydb-server` with a few compatibility patches. Data is saved as SQLite files in `devdb/data/` (gitignored) using a tiny `better-sqlite3` shim over Node's built-in `node:sqlite`, so accounts survive restarts. Delete that folder to start fresh, or run `node devdb/scripts/start.mjs --memory` for a throwaway in-memory database. It does not enforce unique indexes, but Novara checks email and SKU uniqueness in code anyway. Use a real MongoDB for anything beyond a demo.
+> **About the built-in database:** it is `@rckflr/easydb-server` (a MongoDB wire-protocol server) with a few compatibility patches applied on install, storing data with Node's built-in `node:sqlite` through a tiny `better-sqlite3` shim. It does not enforce unique indexes, but Novara checks email and SKU uniqueness in code anyway. Use a real MongoDB for anything beyond development.
 
 ## Automatic SKUs
 

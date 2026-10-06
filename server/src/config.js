@@ -6,7 +6,10 @@ export const config = {
   isProd,
   port: Number(process.env.PORT) || 5000,
   host: process.env.HOST || '0.0.0.0',
-  mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/novara',
+  // Leave MONGODB_URI empty in development to use the built-in dev database
+  mongoUri: process.env.MONGODB_URI || '',
+  embeddedDb: !process.env.MONGODB_URI && (process.env.EMBEDDED_DB ? process.env.EMBEDDED_DB === 'true' : !isProd),
+  embeddedDbPort: Number(process.env.EMBEDDED_DB_PORT) || 27018,
   jwtSecret: process.env.JWT_SECRET || 'novara-dev-secret-change-me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientOrigin: process.env.CLIENT_ORIGIN || '*',

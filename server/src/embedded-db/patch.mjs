@@ -1,25 +1,25 @@
-// Applies small compatibility fixes to @rckflr/easydb-server so it behaves
-// closer to a real MongoDB server when used with Mongoose:
+// postinstall: applies small compatibility fixes to the built-in dev database
+// (@rckflr/easydb-server) so it behaves closer to a real MongoDB with Mongoose.
+// Does nothing if the dev database is not installed (e.g. production installs).
 //  1. Nested ObjectIds (refs, sub-document _ids) are stored as hex strings
 //     instead of being corrupted into { buffer } objects.
 //  2. Regex queries honour `$options` (e.g. case-insensitive search) and
 //     implicit RegExp / BSONRegExp equality.
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 const pkgDir = path.join(root, 'node_modules', '@rckflr', 'easydb-server', 'src');
 const MARK = '/* novara-patched */';
 
 function patch(file, fn) {
   const p = path.join(pkgDir, file);
-  if (!fs.existsSync(p)) return console.warn('[devdb] skip, missing', file);
+  if (!fs.existsSync(p)) return;
   let src = fs.readFileSync(p, 'utf8');
   if (src.includes(MARK)) return;
   src = fn(src);
   fs.writeFileSync(p, MARK + '\n' + src);
-  console.log('[devdb] patched', file);
+  console.log('[embedded-db] patched', file);
 }
 
 patch('storage/database-manager.js', (src) => {
@@ -71,7 +71,7 @@ patch('query/matcher.js', (src) => {
         .replace(/JSON\.parse\((row\._value|r\._value)\)/g, '__de($1)');
       src = `${MARK}\nimport { EJSON } from 'bson';\nconst __ser = (v) => EJSON.stringify(v, { relaxed: true });\nconst __de = (s) => EJSON.parse(s, { relaxed: true });\n${src}`;
       fs.writeFileSync(p, src);
-      console.log('[devdb] patched easydb sqlite adapter');
+      console.log('[embedded-db] patched easydb sqlite adapter');
     }
   }
 }

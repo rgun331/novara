@@ -87,6 +87,6 @@ mongoose.connection.on('reconnected', ensureDemo);
 connectDB(config.isProd ? 10 : Infinity)
   .then(ensureDemo)
   .catch((err) => {
-    console.error('[novara] Could not connect to MongoDB. Check MONGODB_URI.', err.message);
+    console.error('[novara] Could not start the database connection:', err.message);
     process.exit(1);
   });

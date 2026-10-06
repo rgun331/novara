@@ -6,8 +6,9 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "dev": "node --watch --no-warnings=ExperimentalWarning src/index.js",
+    "start": "node --no-warnings=ExperimentalWarning src/index.js",
+    "postinstall": "node src/embedded-db/patch.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -20,5 +21,15 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.0",
     "morgan": "^1.12.1"
+  },
+  "devDependencies": {
+    "@rckflr/easydb-server": "0.4.0",
+    "better-sqlite3": "file:./src/embedded-db/better-sqlite3"
+  },
+  "overrides": {
+    "better-sqlite3": "$better-sqlite3"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }
