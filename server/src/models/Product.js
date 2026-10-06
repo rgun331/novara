@@ -33,6 +33,7 @@ const productSchema = new mongoose.Schema(
 );
 
 productSchema.index({ owner: 1, sku: 1 }, { unique: true });
+productSchema.index({ owner: 1, createdAt: -1 });
 
 productSchema.virtual('stockStatus').get(function stockStatus() {
   if (this.stock <= 0) return 'out';

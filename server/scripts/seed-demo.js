@@ -1,15 +1,24 @@
-// Seeds a ready-to-explore demo workspace so the preview always has a working login.
-//   Email: demo@novara.app   Password: demo1234
-// Runs on startup when config.seedDemo is true. It is idempotent: if the demo
-// user already exists it only makes sure the password still works.
-import User from './models/User.js';
-import Product from './models/Product.js';
-import Order from './models/Order.js';
-import Notification from './models/Notification.js';
-import Counter from './models/Counter.js';
-import { composeSku } from './utils/sku.js';
+// Optional: creates a sample workspace with products, ~60 days of orders and notifications,
+// handy for trying the dashboard on a fresh database.
+//
+//   npm run seed:demo                       # demo@novara.app / a random password (printed)
+//   DEMO_PASSWORD=yourpass1 npm run seed:demo
+//
+// Refuses to run when NODE_ENV=production unless you pass --force.
+import crypto from 'node:crypto';
+import { connectDB, disconnectDB } from '../src/db.js';
+import User from '../src/models/User.js';
+import Product from '../src/models/Product.js';
+import Order from '../src/models/Order.js';
+import Notification from '../src/models/Notification.js';
+import Counter from '../src/models/Counter.js';
+import { composeSku } from '../src/utils/sku.js';
+import { passwordError } from '../src/utils/validation.js';
 
-export const DEMO = { email: 'demo@novara.app', password: 'demo1234' };
+const DEMO = {
+  email: (process.env.DEMO_EMAIL || 'demo@novara.app').toLowerCase(),
+  password: process.env.DEMO_PASSWORD || `demo-${crypto.randomBytes(6).toString('hex')}1`,
+};
 
 const PRODUCTS = [
   { name: 'Stoneware Mug 350ml', category: 'Home & Living', price: 24, cost: 8, stock: 48, supplier: 'Kiln Works', tags: ['ceramic', 'handmade'] },
@@ -47,15 +56,8 @@ function rng(seed) {
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
-export async function seedDemo() {
-  const existing = await User.findOne({ email: DEMO.email }).select('+password');
-  if (existing) {
-    if (!(await existing.comparePassword(DEMO.password))) {
-      existing.password = DEMO.password;
-      await existing.save();
-    }
-    return { created: false };
-  }
+async function seedDemo() {
+  if (await User.exists({ email: DEMO.email })) return { created: false };
 
   const user = await User.create({
     name: 'Ayesha Malik',
@@ -141,4 +143,22 @@ export async function seedDemo() {
   await Notification.insertMany(notes.map((n) => ({ ...n, owner: user._id })));
 
   return { created: true };
+}
+
+if (process.env.NODE_ENV === 'production' && !process.argv.includes('--force')) {
+  console.error('Refusing to seed demo data with NODE_ENV=production. Pass --force if you really want this.');
+  process.exit(1);
+}
+const pwErr = passwordError(DEMO.password);
+if (pwErr) {
+  console.error(`DEMO_PASSWORD is too weak: ${pwErr}`);
+  process.exit(1);
+}
+
+await connectDB({ retries: 1 });
+try {
+  const { created } = await seedDemo();
+  console.log(created ? `Demo workspace created.\n  Email:    ${DEMO.email}\n  Password: ${DEMO.password}` : `${DEMO.email} already exists, nothing changed.`);
+} finally {
+  await disconnectDB();
 }

@@ -100,7 +100,9 @@ function ProfileTab() {
   const [form, setForm] = useState(() => pick(user));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [emailPassword, setEmailPassword] = useState('');
   const dirty = JSON.stringify(form) !== JSON.stringify(pick(user));
+  const emailChanged = form.email.trim().toLowerCase() !== (user.email || '').toLowerCase();
   const set = (k) => (e) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
     setErrors((er) => ({ ...er, [k]: undefined }));
@@ -143,12 +145,14 @@ function ProfileTab() {
     if (form.name.trim().length < 2) er.name = 'Enter your full name';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) er.email = 'Enter a valid email address';
     if (form.website && !/^(https?:\/\/)?[\w-]+(\.[\w-]+)+/.test(form.website.trim())) er.website = 'Enter a valid URL';
+    if (emailChanged && !emailPassword) er.currentPassword = 'Enter your password to change your email';
     if (Object.keys(er).length) return setErrors(er);
     setSaving(true);
     try {
-      const d = await api('/profile', { method: 'PATCH', body: form });
+      const d = await api('/profile', { method: 'PATCH', body: emailChanged ? { ...form, currentPassword: emailPassword } : form });
       setUser(d.user);
       setForm(pick(d.user));
+      setEmailPassword('');
       refresh();
       toast.success('Profile saved');
     } catch (err) {
@@ -211,7 +215,7 @@ function ProfileTab() {
           footer={
             <>
               {dirty && (
-                <Button variant="ghost" onClick={() => { setForm(pick(user)); setErrors({}); }}>
+                <Button variant="ghost" onClick={() => { setForm(pick(user)); setErrors({}); setEmailPassword(''); }}>
                   Discard
                 </Button>
               )}
@@ -228,6 +232,20 @@ function ProfileTab() {
             <Field label="Email" htmlFor="p-email" error={errors.email} required>
               <Input id="p-email" type="email" value={form.email} onChange={set('email')} invalid={!!errors.email} autoComplete="email" />
             </Field>
+            {emailChanged && (
+              <Field label="Current password" htmlFor="p-email-pw" error={errors.currentPassword} hint="Required to change the email you log in with." className="sm:col-span-2" required>
+                <PasswordInput
+                  id="p-email-pw"
+                  value={emailPassword}
+                  onChange={(e) => {
+                    setEmailPassword(e.target.value);
+                    setErrors((er) => ({ ...er, currentPassword: undefined }));
+                  }}
+                  invalid={!!errors.currentPassword}
+                  autoComplete="current-password"
+                />
+              </Field>
+            )}
             <Field label="Business name" htmlFor="p-biz">
               <Input id="p-biz" value={form.businessName} onChange={set('businessName')} />
             </Field>

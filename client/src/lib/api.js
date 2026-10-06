@@ -1,5 +1,8 @@
 const TOKEN_KEY = 'novara.token';
 
+// Empty for a single deployment (same origin). Set VITE_API_URL when the API lives on another domain.
+export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
 export const tokenStore = {
   get() {
     return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
@@ -48,7 +51,7 @@ export async function api(path, { method = 'GET', body, params, signal } = {}) {
 
   let res;
   try {
-    res = await fetch(url.pathname + url.search, {
+    res = await fetch(`${API_BASE}${url.pathname}${url.search}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,

@@ -4,7 +4,7 @@ import Order, { ORDER_CHANNELS, ORDER_STATUSES, PAYMENT_METHODS, PAYMENT_STATUSE
 import Product from '../models/Product.js';
 import { nextSequence } from '../models/Counter.js';
 import { protect } from '../middleware/auth.js';
-import { asyncHandler, HttpError, escapeRegex, qstr, round2, toNumber } from '../utils/asyncHandler.js';
+import { asyncHandler, HttpError, escapeRegex, qstr, round2, str, toNumber } from '../utils/asyncHandler.js';
 import { notify, notifyStockLevel } from '../utils/notify.js';
 
 const router = Router();
@@ -106,22 +106,22 @@ router.post(
     const b = req.body || {};
     const errors = {};
     const customer = {
-      name: String(b.customer?.name || '').trim(),
-      email: String(b.customer?.email || '').trim().toLowerCase(),
-      phone: String(b.customer?.phone || '').trim(),
-      address: String(b.customer?.address || '').trim(),
+      name: str(b.customer?.name).trim(),
+      email: str(b.customer?.email).trim().toLowerCase(),
+      phone: str(b.customer?.phone).trim(),
+      address: str(b.customer?.address).trim(),
     };
     if (customer.name.length < 2) errors['customer.name'] = 'Enter the customer name';
     if (customer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(customer.email)) errors['customer.email'] = 'Enter a valid email';
 
-    const rawItems = Array.isArray(b.items) ? b.items : [];
+    const rawItems = Array.isArray(b.items) ? b.items.slice(0, 100) : [];
     if (!rawItems.length) errors.items = 'Add at least one product';
 
     const merged = new Map();
     for (const it of rawItems) {
-      const id = String(it.product || '');
-      const qty = Math.round(toNumber(it.quantity, 0));
-      if (!mongoose.isValidObjectId(id) || qty < 1) {
+      const id = str(it?.product);
+      const qty = Math.round(toNumber(it?.quantity, 0));
+      if (!mongoose.isValidObjectId(id) || qty < 1 || qty > 100_000) {
         errors.items = 'Each line needs a product and a quantity of at least 1';
         continue;
       }
@@ -149,8 +149,8 @@ router.post(
 
     const subtotal = round2(items.reduce((s, i) => s + i.price * i.quantity, 0));
     const discount = Math.min(subtotal, Math.max(0, round2(toNumber(b.discount, 0))));
-    const shipping = Math.max(0, round2(toNumber(b.shipping, 0)));
-    const taxRate = b.taxRate !== undefined ? toNumber(b.taxRate, 0) : req.user.preferences?.taxRate || 0;
+    const shipping = Math.min(1_000_000, Math.max(0, round2(toNumber(b.shipping, 0))));
+    const taxRate = Math.min(100, Math.max(0, b.taxRate !== undefined ? toNumber(b.taxRate, 0) : req.user.preferences?.taxRate || 0));
     const tax = Math.max(0, round2(((subtotal - discount) * Math.min(100, Math.max(0, taxRate))) / 100));
     const total = round2(subtotal - discount + shipping + tax);
 
@@ -177,7 +177,7 @@ router.post(
         paymentStatus: PAYMENT_STATUSES.includes(b.paymentStatus) ? b.paymentStatus : 'pending',
         paymentMethod: PAYMENT_METHODS.includes(b.paymentMethod) ? b.paymentMethod : 'card',
         channel: ORDER_CHANNELS.includes(b.channel) ? b.channel : 'online_store',
-        notes: String(b.notes || '').trim(),
+        notes: str(b.notes).trim(),
         timeline: [{ status, note: 'Order created', at: new Date() }],
       });
     } catch (err) {
@@ -212,7 +212,7 @@ router.patch(
       if (b.status === 'cancelled') await releaseStock(req.user._id, order.items);
       if (prevStatus === 'cancelled') await reserveStock(req.user._id, order.items);
       order.status = b.status;
-      order.timeline.push({ status: b.status, note: String(b.note || '').trim() || `Marked as ${STATUS_LABEL[b.status]}`, at: new Date() });
+      order.timeline.push({ status: b.status, note: str(b.note).trim().slice(0, 200) || `Marked as ${STATUS_LABEL[b.status]}`, at: new Date() });
     }
     if (b.paymentStatus && b.paymentStatus !== order.paymentStatus) {
       if (!PAYMENT_STATUSES.includes(b.paymentStatus)) throw new HttpError(400, 'Invalid payment status');

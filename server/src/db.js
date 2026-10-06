@@ -3,26 +3,38 @@ import { config } from './config.js';
 
 mongoose.set('strictQuery', true);
 
-async function resolveUri() {
-  if (config.mongoUri) return config.mongoUri;
-  if (config.embeddedDb) {
-    const { startEmbeddedDb } = await import('./embedded-db/index.js');
-    return startEmbeddedDb({ port: config.embeddedDbPort, memory: process.env.EMBEDDED_DB_MEMORY === 'true' });
-  }
-  throw new Error('MONGODB_URI is not set. Add it to server/.env (local MongoDB or Atlas).');
-}
+/** Hides the user and password when a connection string is logged. */
+const redact = (uri) => uri.replace(/\/\/[^@/]+@/, '//***@');
 
-export async function connectDB(retries = 10) {
-  const uri = await resolveUri();
+let closing = false;
+mongoose.connection.on('disconnected', () => !closing && console.warn('[novara] MongoDB disconnected, the driver will keep retrying'));
+mongoose.connection.on('reconnected', () => console.log('[novara] MongoDB reconnected'));
+mongoose.connection.on('error', (err) => console.error('[novara] MongoDB error:', err.message));
+
+export async function connectDB({ retries = 5 } = {}) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      await mongoose.connect(uri, { serverSelectionTimeoutMS: 4000 });
-      console.log(`[novara] MongoDB connected: ${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`);
+      await mongoose.connect(config.mongoUri, {
+        serverSelectionTimeoutMS: 10_000,
+        maxPoolSize: 10,
+        // Builds the schema indexes (unique email, owner+sku, owner+orderNumber) if missing; idempotent
+        autoIndex: true,
+      });
+      const { host, name } = mongoose.connection;
+      console.log(`[novara] MongoDB connected: ${host}/${name}`);
+      if (name === 'test') {
+        console.warn('[novara] MONGO_URI has no database name, so data goes to "test". Add one before the "?", e.g. ...mongodb.net/novara?retryWrites=true');
+      }
       return;
     } catch (err) {
-      console.error(`[novara] MongoDB connection failed (attempt ${attempt}${Number.isFinite(retries) ? `/${retries}` : ''}): ${err.message}`);
+      console.error(`[novara] MongoDB connection failed (attempt ${attempt}/${retries}) to ${redact(config.mongoUri)}: ${err.message}`);
       if (attempt === retries) throw err;
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 3000));
     }
   }
+}
+
+export async function disconnectDB() {
+  closing = true;
+  await mongoose.connection.close();
 }

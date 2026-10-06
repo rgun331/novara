@@ -1,12 +1,16 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import Product, { PRODUCT_CATEGORIES } from '../models/Product.js';
 import { protect } from '../middleware/auth.js';
-import { asyncHandler, HttpError, escapeRegex, isDataImage, qstr, round2, toNumber } from '../utils/asyncHandler.js';
+import { asyncHandler, HttpError, escapeRegex, isDataImage, qstr, round2, str, toNumber } from '../utils/asyncHandler.js';
 import { generateUniqueSku } from '../utils/sku.js';
 import { notify, notifyStockLevel } from '../utils/notify.js';
 
 const router = Router();
 router.use(protect);
+
+const MAX_MONEY = 10_000_000;
+const MAX_UNITS = 10_000_000;
 
 function parseProductBody(body = {}, { partial = false, defaults = {} } = {}) {
   const errors = {};
@@ -14,33 +18,33 @@ function parseProductBody(body = {}, { partial = false, defaults = {} } = {}) {
   const has = (k) => body[k] !== undefined;
 
   if (!partial || has('name')) {
-    out.name = String(body.name || '').trim();
+    out.name = str(body.name).trim();
     if (out.name.length < 2) errors.name = 'Enter a product name';
   }
   if (!partial || has('category')) {
-    out.category = String(body.category || '').trim();
+    out.category = str(body.category).trim();
     if (!out.category) errors.category = 'Choose a category';
   }
   if (!partial || has('price')) {
     out.price = round2(toNumber(body.price, NaN));
-    if (!Number.isFinite(out.price) || out.price < 0) errors.price = 'Enter a valid price';
+    if (!Number.isFinite(out.price) || out.price < 0 || out.price > MAX_MONEY) errors.price = 'Enter a valid price';
   }
   if (has('cost') || !partial) {
     out.cost = round2(toNumber(body.cost, 0));
-    if (out.cost < 0) errors.cost = 'Cost cannot be negative';
+    if (out.cost < 0 || out.cost > MAX_MONEY) errors.cost = 'Enter a valid cost';
   }
   if (has('stock') || !partial) {
     out.stock = Math.round(toNumber(body.stock, 0));
-    if (out.stock < 0) errors.stock = 'Stock cannot be negative';
+    if (out.stock < 0 || out.stock > MAX_UNITS) errors.stock = 'Enter a valid stock level';
   }
   if (has('lowStockThreshold') || !partial) {
-    out.lowStockThreshold = Math.max(0, Math.round(toNumber(body.lowStockThreshold, defaults.lowStockThreshold ?? 10)));
+    out.lowStockThreshold = Math.min(MAX_UNITS, Math.max(0, Math.round(toNumber(body.lowStockThreshold, defaults.lowStockThreshold ?? 10))));
   }
   if (has('status')) {
     if (!['active', 'draft', 'archived'].includes(body.status)) errors.status = 'Invalid status';
     else out.status = body.status;
   }
-  for (const k of ['description', 'supplier']) if (has(k)) out[k] = String(body[k] || '').trim();
+  for (const k of ['description', 'supplier']) if (has(k)) out[k] = str(body[k]).trim();
   if (has('tags')) {
     const tags = Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(',');
     out.tags = [...new Set(tags.map((t) => String(t).trim()).filter(Boolean))].slice(0, 8);
@@ -50,7 +54,7 @@ function parseProductBody(body = {}, { partial = false, defaults = {} } = {}) {
     else if (body.image && body.image.length > 1_000_000) errors.image = 'Image is too large';
     else out.image = body.image || '';
   }
-  if (has('sku')) out.sku = String(body.sku || '').trim().toUpperCase().replace(/\s+/g, '-');
+  if (has('sku')) out.sku = str(body.sku).trim().toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9_-]/g, '');
 
   if (Object.keys(errors).length) throw new HttpError(400, 'Please check the highlighted fields.', errors);
   return out;
@@ -180,6 +184,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const delta = Math.round(toNumber(req.body?.delta, 0));
     if (!delta) throw new HttpError(400, 'Enter a quantity to add or remove.');
+    if (Math.abs(delta) > MAX_UNITS) throw new HttpError(400, 'That quantity is too large.');
     const product = await Product.findOne({ _id: req.params.id, owner: req.user._id });
     if (!product) throw new HttpError(404, 'Product not found');
     if (product.stock + delta < 0) throw new HttpError(400, `Only ${product.stock} units available to remove.`);
@@ -200,7 +205,7 @@ router.post(
 router.post(
   '/bulk-delete',
   asyncHandler(async (req, res) => {
-    const ids = Array.isArray(req.body?.ids) ? req.body.ids.slice(0, 500) : [];
+    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).filter((id) => typeof id === 'string' && mongoose.isValidObjectId(id)).slice(0, 500);
     if (!ids.length) throw new HttpError(400, 'Select at least one product.');
     const result = await Product.deleteMany({ owner: req.user._id, _id: { $in: ids } });
     await notify(req.user, {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowRight, Storefront } from '@phosphor-icons/react';
+import { ArrowRight } from '@phosphor-icons/react';
 import { AuthLayout, FormError, ServerStatusBanner } from '../components/AuthLayout';
 import { useServerStatus } from '../hooks/useServerStatus';
 import { Field, Input } from '../components/ui/Field';
@@ -33,14 +33,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const openDemo = () => {
-    const creds = { email: server.demo.email, password: server.demo.password, remember: true };
-    setForm(creds);
-    setErrors({});
-    setError('');
-    signIn(creds);
   };
 
   const submit = async (e) => {
@@ -84,25 +76,6 @@ export default function Login() {
           Log in {!loading && <ArrowRight weight="bold" className="size-4" />}
         </Button>
       </form>
-
-      {server.demo && (
-        <div className="mt-6 rounded-2xl border border-line bg-paper p-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-pine-50 text-pine-700">
-              <Storefront className="size-[18px]" weight="duotone" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold text-ink-900">Just looking around?</p>
-              <p className="truncate text-[12px] text-ink-500">
-                {server.demo.email} / {server.demo.password}
-              </p>
-            </div>
-            <Button type="button" variant="secondary" size="sm" onClick={openDemo} disabled={loading}>
-              Open demo
-            </Button>
-          </div>
-        </div>
-      )}
 
       <p className="mt-8 text-center text-sm text-ink-500">
         New to Novara?{' '}

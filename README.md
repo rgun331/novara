@@ -21,7 +21,7 @@ Novara is a MERN-stack workspace for small product businesses. You can manage pr
 | --- | --- |
 | Client | React 19, React Router 7, Vite, Tailwind CSS 4, GSAP + ScrollTrigger, Motion, Recharts, three.js / r3f, Phosphor Icons, Sonner |
 | Server | Node.js, Express 5, Mongoose, JWT, bcrypt, Helmet |
-| Database | MongoDB (local, Atlas or the bundled dev database) |
+| Database | MongoDB Atlas (any MongoDB 6+ works) |
 
 ## Project layout
 
@@ -33,71 +33,97 @@ novara/
 
 ## Getting started
 
-Requirements: Node 22.13 or newer.
+Requirements: Node 20.19 or newer and a MongoDB Atlas cluster (the free M0 tier is fine).
+
+### 1. Set up MongoDB Atlas
+
+1. Create a cluster at [cloud.mongodb.com](https://cloud.mongodb.com).
+2. **Database Access**: add a database user with a strong password and the *Read and write to any database* role (or scope it to the `novara` database).
+3. **Network Access**: add the IP addresses that will connect. That means your own IP for local development and your host's outbound IPs in production. `0.0.0.0/0` works but lets anyone with the credentials try to connect, so use it only if your host has no fixed IPs.
+4. **Connect > Drivers**: copy the `mongodb+srv://` connection string and add the database name before the `?`:
+
+   ```
+   mongodb+srv://novara_app:<password>@cluster0.xxxxx.mongodb.net/novara?retryWrites=true&w=majority
+   ```
+
+   If the password contains special characters (`@ : / ? # [ ] %`), URL-encode them.
+
+Collections and indexes are created automatically the first time the API starts.
+
+### 2. Configure the server
+
+```bash
+cp server/.env.example server/.env
+```
+
+Then set the two required values in `server/.env`:
+
+```bash
+MONGO_URI=mongodb+srv://...           # from step 1
+JWT_SECRET=...                        # 32+ random characters, generate with:
+# node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+The server will not start without them. It prints a clear message saying what is missing.
+
+### 3. Run it
 
 ```bash
 npm install      # installs the root, server and client dependencies
 npm run dev      # API on http://localhost:5000, app on http://localhost:5173
 ```
 
-You can also run them separately: `npm run server` and `npm run client` (or `npm run dev` inside each folder).
+The Vite dev server proxies `/api` to the API, so no CORS setup is needed in development.
 
-### Database
+**Optional sample data:** `npm run seed:demo` creates a `demo@novara.app` workspace with products, about 60 days of orders and notifications, and prints its password (set `DEMO_PASSWORD` to choose one). It refuses to run when `NODE_ENV=production`.
 
-The API uses MongoDB through Mongoose. Pick one:
+## Deploying
 
-- **Your own MongoDB or Atlas:** copy `server/.env.example` to `server/.env` and set `MONGODB_URI`.
-- **Nothing installed?** Leave `MONGODB_URI` unset. In development, the server starts a small built-in MongoDB-compatible database inside the API process and saves data to `server/.data/` (gitignored), so accounts survive restarts. Delete that folder to start fresh.
+Novara deploys as **one Node service**: Express serves both the API and the built React app on the same origin.
 
-The built-in database lives in `server/src/embedded-db/` and is a dev dependency only. It is never loaded when `MONGODB_URI` is set, and in production the server requires `MONGODB_URI`.
-
-### Demo account
-
-In development the API creates a ready-made workspace on startup:
-
-| Email | Password |
+| Setting | Value |
 | --- | --- |
-| `demo@novara.app` | `demo1234` |
+| Build command | `npm install && npm run build` |
+| Start command | `npm start` |
+| Environment | `NODE_ENV=production`, `MONGO_URI`, `JWT_SECRET` |
+| Health check | `GET /api/health` (200 when the database is connected, 503 otherwise) |
 
-It comes with 8 products, about 60 days of orders, customers and notifications, so the analytics have real data to show. The login page has an **Open demo** button. New sign-ups always start with an empty workspace. Turn the demo off with `SEED_DEMO=false`. In production it is off unless you set `SEED_DEMO=true`.
+This works as-is on Render, Railway, Fly.io, Heroku or a VPS behind Nginx. The platform's `PORT` is picked up automatically. After deploying, add the host's outbound IPs to Atlas Network Access.
 
-### Production (single port)
+### Environment variables (`server/.env`)
 
-```bash
-npm start        # builds the client and serves it from Express (needs MONGODB_URI)
-```
+| Variable | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `MONGO_URI` | yes | | Atlas connection string including the database name |
+| `JWT_SECRET` | yes | | 32+ random characters. Changing it signs everyone out |
+| `NODE_ENV` | | `development` | Set `production` in production |
+| `PORT` | | `5000` | |
+| `JWT_EXPIRES_IN` | | `7d` | Login lifetime |
+| `TRUST_PROXY` | | `1` in production, else `false` | Number of proxies in front of the app, used to read the real client IP for rate limits. Set `false` if Node is exposed directly |
+| `CLIENT_ORIGIN` | | empty | Only if the client is hosted on another domain: comma-separated origins allowed by CORS |
+| `SERVE_CLIENT` | | auto | Serve `client/dist` from Express. Automatically on when the client has been built |
 
-### Environment (`server/.env`)
+**Hosting the client separately** (for example on Vercel or Netlify): build it with `VITE_API_URL=https://api.yourdomain.com npm run build --prefix client`, then set `CLIENT_ORIGIN=https://app.yourdomain.com` and `SERVE_CLIENT=false` on the API. In development, `VITE_API_PROXY` changes where Vite proxies `/api`.
 
-| Variable | Default | Notes |
-| --- | --- | --- |
-| `PORT` | `5000` | API port |
-| `MONGODB_URI` | not set | Local MongoDB or Atlas. If unset in development, the built-in database is used |
-| `JWT_SECRET` | dev value | **Required in production**: a random string of 32+ characters (the server refuses to start otherwise) |
-| `JWT_EXPIRES_IN` | `7d` | Token lifetime |
-| `CLIENT_ORIGIN` | `*` | CORS origins, comma-separated |
-| `SERVE_CLIENT` | `false` (`true` in production) | Serve `client/dist` from Express |
-| `SEED_DEMO` | `true` in dev, `false` in production | Create the demo account on startup |
-| `EMBEDDED_DB_PORT` | `27018` | Port for the built-in dev database |
+## Security
 
-For the client, `VITE_API_PROXY` changes where Vite proxies `/api` (default `http://127.0.0.1:5000`).
+- **Secrets come only from the environment.** There are no default credentials or fallback JWT secret, and `server/.env` is gitignored.
+- **Passwords** are hashed with bcrypt (cost 11) and capped at 128 characters. Login takes the same time whether or not the email exists, so accounts cannot be discovered by timing.
+- **Rate limits**: 20 sign-ups per IP per hour, 60 login attempts per IP and 10 failed attempts per account per 15 minutes, plus a general API limit per IP.
+- **Sessions** are HS256 JWTs pinned to that algorithm. Changing your password revokes every other session (token versioning). Changing your email or password, or deleting the account, requires the current password.
+- **Tenant isolation**: every query is scoped to the logged-in owner, so one workspace can never read or change another's data.
+- **Input handling**: request values are type-checked and bounded (lengths, prices, quantities, list sizes). Objects sent in place of strings get a 400 instead of becoming query operators, and search text is regex-escaped.
+- **Headers**: Helmet with a strict Content Security Policy (everything is self-hosted), HSTS, frame protection and no `X-Powered-By`. CORS is off unless `CLIENT_ORIGIN` is set.
+- **Errors**: unexpected server errors are logged but return a generic message in production, so stack traces and database details never reach the browser.
+- **CSV exports** neutralise spreadsheet formulas in user-entered text (CSV injection).
+- **Data hygiene**: notifications are removed automatically after 90 days (TTL index). Deleting an account removes all of its products, orders and notifications.
 
-### Security
+## Reliability
 
-- Passwords are hashed with bcrypt. Login takes the same time whether or not the email exists, and login/sign-up are rate limited.
-- Session tokens are HS256 JWTs pinned to that algorithm. Changing your password signs out every other session (token versioning), while the current device receives a fresh token.
-- Every query is scoped to the logged-in owner, so one workspace can never read or change another's products, orders or notifications.
-- Request values are type-checked, so objects or arrays sent in place of strings get a 400, never a crash or an injected query operator.
-- When Express serves the built app, it sends a strict Content Security Policy (everything is self-hosted, no third-party requests) along with Helmet's other security headers.
-- The shared demo account's email and password are locked, and the account cannot be deleted.
-
-### Resilience
-
-- The API starts listening right away. Until the database connects (or while it reconnects), API calls return `503` with a clear message instead of hanging.
-- The login and sign-up pages poll `/api/health` and show a "server is not responding" banner that clears on its own.
-- The client turns gateway errors (502/503/504), HTML error pages and network failures into one friendly message, so raw proxy errors never reach the user.
-
-> **About the built-in database:** it is `@rckflr/easydb-server` (a MongoDB wire-protocol server) with a few compatibility patches applied on install, storing data with Node's built-in `node:sqlite` through a tiny `better-sqlite3` shim. It does not enforce unique indexes, but Novara checks email and SKU uniqueness in code anyway. Use a real MongoDB for anything beyond development.
+- The server connects to MongoDB before it starts listening, retrying a few times so a slow cold start doesn't fail the deploy. If Atlas becomes unreachable later, API calls return `503` with a clear message until the driver reconnects.
+- `SIGTERM`/`SIGINT` trigger a graceful shutdown: in-flight requests finish, then the database pool closes.
+- Hashed build assets are cached for a year. `index.html` is always revalidated, so deploys show up immediately.
+- The login and sign-up pages show a "server is not responding" banner while the API or database is unavailable.
 
 ## Automatic SKUs
 

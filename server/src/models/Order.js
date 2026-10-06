@@ -55,5 +55,6 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.index({ owner: 1, orderNumber: 1 }, { unique: true });
+orderSchema.index({ owner: 1, createdAt: -1 });
 
 export default mongoose.model('Order', orderSchema);

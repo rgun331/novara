@@ -4,15 +4,16 @@
   "version": "1.0.0",
   "description": "Novara: inventory, orders and analytics for small product businesses (MERN).",
   "scripts": {
-    "postinstall": "npm install --prefix server && npm install --prefix client",
+    "postinstall": "npm install --prefix server && npm install --prefix client --include=dev",
     "dev": "concurrently -k -n api,web -c cyan,green \"npm:server\" \"npm:client\"",
     "server": "npm run dev --prefix server",
     "client": "npm run dev --prefix client",
     "build": "npm run build --prefix client",
-    "start": "npm run build && SERVE_CLIENT=true NODE_ENV=production npm start --prefix server"
+    "start": "npm start --prefix server",
+    "seed:demo": "npm run seed:demo --prefix server"
   },
   "engines": {
-    "node": ">=22.13"
+    "node": ">=20.19"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

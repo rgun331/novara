@@ -62,7 +62,6 @@ const DOCS = {
         heading: 'Fair use',
         body: [
           'Do not attempt to access other workspaces, disrupt the service or overload it with automated requests. Login and sign-up are rate limited.',
-          'The shared demo workspace is for trying Novara. Its email and password are locked and its data may be reset.',
         ],
       },
       {

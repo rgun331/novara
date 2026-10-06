@@ -21,6 +21,6 @@ export const escapeRegex = (s = '') => String(s).replace(/[.*+?^${}()|[\]\\]/g, 
 export const str = (v) => (typeof v === 'string' ? v : '');
 
 /** Query value as a string. Repeated params (?a=1&a=2) arrive as arrays, take the first. */
-export const qstr = (v) => (Array.isArray(v) ? str(v[0]) : str(v));
+export const qstr = (v) => (Array.isArray(v) ? str(v[0]) : str(v)).slice(0, 200);
 
 export const isDataImage = (s) => typeof s === 'string' && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(s);
